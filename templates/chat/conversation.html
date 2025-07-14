@@ -11,6 +11,18 @@ Chat with {{ other_participant.full_name }} - ChatMoji
 {% block content %}
 {% load static %}
 <script src="{% static 'js/emoji-converter.js' %}"></script>
+<style>
+/* Mobile chat adjustments */
+@media (max-width: 1024px) {
+    #messagesContainer {
+        padding-bottom: 120px; /* Space for fixed input */
+    }
+    
+    .message-bubble {
+        max-width: 85%; /* Better mobile width */
+    }
+}
+</style>
 <div class="flex h-screen bg-gray-100">
     <!-- Left Sidebar - Online Users -->
     <div id="sidebar" class="w-80 bg-white border-r border-gray-200 hidden lg:flex flex-col">
@@ -130,37 +142,37 @@ Chat with {{ other_participant.full_name }} - ChatMoji
         </div>
 
         <!-- Message Input -->
-        <div class="bg-white p-4 border-t border-gray-200">
-            <!-- Emoji Preview -->
-            <div id="emojiPreview" class="mb-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 hidden">
-                <strong>Preview:</strong> <span id="previewText"></span>
-            </div>
-            
-            <form id="messageForm" class="flex items-center space-x-3">
-                {% csrf_token %}
-                <button type="button" id="emojiBtn" class="text-2xl hover:bg-gray-100 p-2 rounded-full transition duration-200" title="Show emoji suggestions">
-                    😊
-                </button>
-                <div class="flex-1 relative">
-                    <input type="text" id="messageInput" name="content"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           placeholder="Type anything... EVERY word becomes an emoji! 🎉"
-                           maxlength="500"
-                           autocomplete="off">
-                    <div class="absolute right-3 top-3 text-xs text-gray-400">
-                        <span id="charCount">0</span>/500
-                    </div>
-                </div>
-                <button type="submit" id="sendBtn" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </form>
-            
-            <!-- Connection Status -->
-            <div class="mt-2 text-xs text-center">
-                <span id="connectionStatusText" class="text-gray-500">Connecting to chat...</span>
+      <div class="bg-white p-4 border-t border-gray-200 fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto">
+    <!-- Emoji Preview -->
+    <div id="emojiPreview" class="mb-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 hidden">
+        <strong>Preview:</strong> <span id="previewText"></span>
+    </div>
+    
+    <form id="messageForm" class="flex items-center space-x-2 lg:space-x-3">
+        {% csrf_token %}
+        <button type="button" id="emojiBtn" class="text-xl lg:text-2xl hover:bg-gray-100 p-2 rounded-full transition duration-200 flex-shrink-0" title="Show emoji suggestions">
+            😊
+        </button>
+        <div class="flex-1 relative">
+            <input type="text" id="messageInput" name="content"
+                   class="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
+                   placeholder="Type your message..."
+                   maxlength="500"
+                   autocomplete="off">
+            <div class="absolute right-2 lg:right-3 top-2 lg:top-3 text-xs text-gray-400">
+                <span id="charCount">0</span>/500
             </div>
         </div>
+        <button type="submit" id="sendBtn" class="bg-blue-600 text-white p-2 lg:p-3 rounded-full hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+            <i class="fas fa-paper-plane text-sm lg:text-base"></i>
+        </button>
+    </form>
+    
+    <!-- Connection Status -->
+    <div class="mt-2 text-xs text-center">
+        <span id="connectionStatusText" class="text-gray-500">Connecting to chat...</span>
+    </div>
+</div>
     </div>
 </div>
 
@@ -918,282 +930,661 @@ function loadOnlineUsers() {
 
     //auto refersher
     // Auto-refresh configuration
-let autoRefreshInterval = null;
-let lastMessageCount = 0;
-let isUserTyping = false;
-let userScrolledUp = false;
+// let autoRefreshInterval = null;
+// let lastMessageCount = 0;
+// let isUserTyping = false;
+// let userScrolledUp = false;
 
-// Start auto-refresh when page loads
-function startAutoRefresh() {
-    // Refresh every 2 seconds (you can adjust this)
-    autoRefreshInterval = setInterval(refreshMessages, 100); // 100ms = 0.1 seconds // 500ms = 0.5 seconds
-    console.log('Auto-refresh started');
-}
+// // Start auto-refresh when page loads
+// function startAutoRefresh() {
+//     // Refresh every 2 seconds (you can adjust this)
+//     autoRefreshInterval = setInterval(refreshMessages, 100); // 100ms = 0.1 seconds // 500ms = 0.5 seconds
+//     console.log('Auto-refresh started');
+// }
 
-// Stop auto-refresh (useful when user is actively interacting)
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-}
+// // Stop auto-refresh (useful when user is actively interacting)
+// function stopAutoRefresh() {
+//     if (autoRefreshInterval) {
+//         clearInterval(autoRefreshInterval);
+//         autoRefreshInterval = null;
+//     }
+// }
 
-// Main refresh function
-async function refreshMessages() {
-    // Don't refresh if user is typing or has scrolled up to read old messages
-    if (isUserTyping || userScrolledUp) {
-        return;
-    }
+// // Main refresh function
+// async function refreshMessages() {
+//     // Don't refresh if user is typing or has scrolled up to read old messages
+//     if (isUserTyping || userScrolledUp) {
+//         return;
+//     }
 
-    try {
-        // Get current scroll position
-        const container = document.getElementById('messagesContainer');
-        const wasAtBottom = isScrolledToBottom();
+//     try {
+//         // Get current scroll position
+//         const container = document.getElementById('messagesContainer');
+//         const wasAtBottom = isScrolledToBottom();
         
-        // Save current input value
-        const messageInput = document.getElementById('messageInput');
-        const currentInputValue = messageInput ? messageInput.value : '';
+//         // Save current input value
+//         const messageInput = document.getElementById('messageInput');
+//         const currentInputValue = messageInput ? messageInput.value : '';
         
-        // Fetch latest messages
-        const response = await fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            }
-        });
+//         // Fetch latest messages
+//         const response = await fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50`, {
+//             method: 'GET',
+//             headers: {
+//                 'X-Requested-With': 'XMLHttpRequest',
+//             }
+//         });
         
-        if (!response.ok) {
-            console.log('Failed to fetch messages');
-            return;
-        }
+//         if (!response.ok) {
+//             console.log('Failed to fetch messages');
+//             return;
+//         }
         
-        const data = await response.json();
-        const newMessages = data.messages || [];
+//         const data = await response.json();
+//         const newMessages = data.messages || [];
         
-        // Check if there are new messages
-        if (newMessages.length > lastMessageCount) {
-            updateMessagesUI(newMessages, wasAtBottom);
-            lastMessageCount = newMessages.length;
+//         // Check if there are new messages
+//         if (newMessages.length > lastMessageCount) {
+//             updateMessagesUI(newMessages, wasAtBottom);
+//             lastMessageCount = newMessages.length;
             
-            // Restore input value if it was cleared
-            if (messageInput && currentInputValue && !messageInput.value) {
-                messageInput.value = currentInputValue;
-            }
-        }
+//             // Restore input value if it was cleared
+//             if (messageInput && currentInputValue && !messageInput.value) {
+//                 messageInput.value = currentInputValue;
+//             }
+//         }
         
-    } catch (error) {
-        console.log('Auto-refresh error:', error);
-    }
+//     } catch (error) {
+//         console.log('Auto-refresh error:', error);
+//     }
+// }
+
+// // Update the messages UI with new messages
+// function updateMessagesUI(messages, wasAtBottom) {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     // Clear existing messages
+//     const existingMessages = container.querySelectorAll('.message-bubble');
+//     existingMessages.forEach(msg => msg.remove());
+    
+//     // Add all messages
+//     messages.forEach(message => {
+//         const messageElement = createMessageElement(message);
+//         container.appendChild(messageElement);
+//     });
+    
+//     // Scroll to bottom only if user was at bottom before refresh
+//     if (wasAtBottom) {
+//         scrollToBottom();
+//     }
+// }
+
+// // Create message element
+// function createMessageElement(message) {
+//     const messageDiv = document.createElement('div');
+//     const isOwnMessage = message.sender_id === currentUserId;
+    
+//     messageDiv.className = `message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+//     messageDiv.setAttribute('data-message-id', message.id);
+    
+//     const contentToShow = message.emoji_content && message.emoji_content !== message.content 
+//     ? message.emoji_content 
+//     : (window.emojiConverter ? window.emojiConverter.convert(message.content) : message.content);
+    
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+//             isOwnMessage 
+//                 ? 'bg-blue-600 text-white' 
+//                 : 'bg-white text-gray-800 border border-gray-200'
+//         }">
+//             ${!isOwnMessage ? `
+//                 <div class="flex items-center mb-1">
+//                     <img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-4 h-4 rounded-full mr-2">
+//                     <span class="text-xs font-medium ${isOwnMessage ? 'text-blue-200' : 'text-gray-600'}">${message.sender_name}</span>
+//                 </div>
+//             ` : ''}
+//             <div class="message-content">${contentToShow}</div>
+//             <div class="text-xs ${isOwnMessage ? 'text-blue-200' : 'text-gray-500'} mt-1">
+//                 ${formatMessageTime(message.timestamp)}
+//                 ${isOwnMessage ? '<span class="ml-2">✓</span>' : ''}
+//             </div>
+//         </div>
+//     `;
+    
+//     return messageDiv;
+// }
+
+// // Format message timestamp
+// function formatMessageTime(timestamp) {
+//     const date = new Date(timestamp);
+//     const now = new Date();
+//     const diff = now - date;
+    
+//     if (diff < 60000) { // Less than 1 minute
+//         return 'Just now';
+//     } else if (diff < 3600000) { // Less than 1 hour
+//         return Math.floor(diff / 60000) + 'm ago';
+//     } else if (date.toDateString() === now.toDateString()) { // Same day
+//         return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+//     } else {
+//         return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+//     }
+// }
+
+// // Check if user has scrolled to bottom
+// function isScrolledToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return true;
+    
+//     const threshold = 100; // pixels from bottom
+//     return container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+// }
+
+// // Smooth scroll to bottom
+// function scrollToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (container) {
+//         container.scrollTo({
+//             top: container.scrollHeight,
+//             behavior: 'smooth'
+//         });
+//     }
+// }
+
+// // Track user typing
+// function trackUserTyping() {
+//     const messageInput = document.getElementById('messageInput');
+//     if (!messageInput) return;
+    
+//     let typingTimer;
+    
+//     messageInput.addEventListener('input', () => {
+//         isUserTyping = true;
+//         clearTimeout(typingTimer);
+        
+//         // Stop considering user as typing after 3 seconds of no input
+//         typingTimer = setTimeout(() => {
+//             isUserTyping = false;
+//         }, 3000);
+//     });
+    
+//     messageInput.addEventListener('blur', () => {
+//         isUserTyping = false;
+//     });
+// }
+
+// // Track user scroll behavior
+// function trackUserScroll() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     container.addEventListener('scroll', () => {
+//         userScrolledUp = !isScrolledToBottom();
+        
+//         // If user scrolls to bottom, resume normal auto-refresh
+//         if (!userScrolledUp) {
+//             setTimeout(() => {
+//                 userScrolledUp = false;
+//             }, 1000);
+//         }
+//     });
+// }
+
+// // Enhanced message sending with auto-refresh pause
+// function sendMessageWithAutoRefresh() {
+//     const input = document.getElementById('messageInput');
+//     const content = input.value.trim();
+    
+//     if (!content) return;
+    
+//     // Temporarily stop auto-refresh while sending
+//     stopAutoRefresh();
+    
+//     // Send via form submission (fallback method that works reliably)
+//     const formData = new FormData();
+//     formData.append('content', content);
+//     formData.append('conversation_id', conversationId);
+//     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+//     fetch('/chat/api/send-message/', {
+//         method: 'POST',
+//         body: formData
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             // Clear input
+//             input.value = '';
+//             updateCharCount();
+            
+//             // Force immediate refresh to show sent message
+//             setTimeout(() => {
+//                 refreshMessages();
+//                 startAutoRefresh(); // Resume auto-refresh
+//             }, 500);
+//         } else {
+//             console.error('Send message error:', data.message);
+//             showNotification('Failed to send message: ' + data.message, 'error');
+//             startAutoRefresh(); // Resume auto-refresh even on error
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Network error:', error);
+//         showNotification('Network error. Please try again.', 'error');
+//         startAutoRefresh(); // Resume auto-refresh
+//     });
+// }
+
+// // Initialize everything when page loads
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Get initial message count
+//     lastMessageCount = document.querySelectorAll('.message-bubble').length;
+    
+//     // Start tracking user behavior
+//     trackUserTyping();
+//     trackUserScroll();
+    
+//     // Override the default send message function
+//     const messageForm = document.getElementById('messageForm');
+//     if (messageForm) {
+//         messageForm.onsubmit = function(e) {
+//             e.preventDefault();
+//             sendMessageWithAutoRefresh();
+//         };
+//     }
+    
+//     // Start auto-refresh after a short delay
+//     setTimeout(startAutoRefresh, 2000);
+    
+//     console.log('Auto-refresh system initialized');
+// });
+
+// // Pause auto-refresh when page is not visible
+// document.addEventListener('visibilitychange', function() {
+//     if (document.hidden) {
+//         stopAutoRefresh();
+//     } else {
+//         startAutoRefresh();
+//     }
+// });
+// 2 Ultra-fast auto-refresh configuration
+// let autoRefreshInterval = null;
+// let lastMessageCount = 0;
+// let isUserTyping = false;
+// let refreshCount = 0;
+
+// // Super aggressive refresh - every 100ms
+// function startUltraFastRefresh() {
+//     autoRefreshInterval = setInterval(ultraFastRefresh, 100); // 100ms = 0.1 seconds
+//     console.log('Ultra-fast refresh started (100ms intervals)');
+// }
+
+// // Stop auto-refresh
+// function stopAutoRefresh() {
+//     if (autoRefreshInterval) {
+//         clearInterval(autoRefreshInterval);
+//         autoRefreshInterval = null;
+//     }
+// }
+
+// // Ultra-fast refresh function
+// async function ultraFastRefresh() {
+//     refreshCount++;
+    
+//     // Skip if user is actively typing (but still refresh every 10th time)
+//     if (isUserTyping && refreshCount % 10 !== 0) {
+//         return;
+//     }
+
+//     try {
+//         // Save current state
+//         const container = document.getElementById('messagesContainer');
+//         const messageInput = document.getElementById('messageInput');
+//         const currentInputValue = messageInput ? messageInput.value : '';
+//         const wasAtBottom = isScrolledToBottom();
+        
+//         // Fetch latest messages with cache busting
+//         const response = await fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50&t=${Date.now()}`, {
+//             method: 'GET',
+//             headers: {
+//                 'X-Requested-With': 'XMLHttpRequest',
+//                 'Cache-Control': 'no-cache',
+//             }
+//         });
+        
+//         if (!response.ok) return;
+        
+//         const data = await response.json();
+//         const newMessages = data.messages || [];
+        
+//         // Always update if message count changed OR every 50th refresh (force update)
+//         if (newMessages.length !== lastMessageCount || refreshCount % 50 === 0) {
+//             updateMessagesUIFast(newMessages, wasAtBottom);
+//             lastMessageCount = newMessages.length;
+            
+//             // Restore input value
+//             if (messageInput && currentInputValue && !messageInput.value) {
+//                 messageInput.value = currentInputValue;
+//             }
+            
+//             // Remove any "Sending..." indicators
+//             removeSendingIndicators();
+//         }
+        
+//     } catch (error) {
+//         // Silent error handling - don't stop the refresh
+//         if (refreshCount % 100 === 0) { // Log every 100th error only
+//             console.log('Refresh error (silent):', error);
+//         }
+//     }
+// }
+
+// // Ultra-fast UI update
+// function updateMessagesUIFast(messages, wasAtBottom) {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     // Get current message IDs for comparison
+//     const currentMessageIds = Array.from(container.querySelectorAll('[data-message-id]'))
+//         .map(el => el.getAttribute('data-message-id'));
+    
+//     const newMessageIds = messages.map(m => m.id);
+    
+//     // Only rebuild if messages actually changed
+//     if (JSON.stringify(currentMessageIds) !== JSON.stringify(newMessageIds)) {
+//         // Clear and rebuild
+//         const existingMessages = container.querySelectorAll('.message-bubble');
+//         existingMessages.forEach(msg => msg.remove());
+        
+//         // Add all messages
+//         messages.forEach(message => {
+//             const messageElement = createMessageElementFast(message);
+//             container.appendChild(messageElement);
+//         });
+        
+//         // Scroll if user was at bottom
+//         if (wasAtBottom) {
+//             scrollToBottomFast();
+//         }
+//     }
+// }
+
+// // Remove all sending indicators
+// function removeSendingIndicators() {
+//     document.querySelectorAll('.status-indicator').forEach(indicator => {
+//         if (indicator.textContent === '⏳') {
+//             indicator.textContent = '✓';
+//             const textElement = indicator.parentElement.querySelector('span');
+//             if (textElement && textElement.textContent === 'Sending...') {
+//                 textElement.textContent = 'Sent';
+//             }
+//         }
+//     });
+// }
+
+// // Fast message element creation
+// function createMessageElementFast(message) {
+//     const messageDiv = document.createElement('div');
+//     const isOwnMessage = message.sender_id === currentUserId;
+    
+//     messageDiv.className = `message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+//     messageDiv.setAttribute('data-message-id', message.id);
+    
+//     const contentToShow = message.emoji_content || message.content;
+    
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+//             isOwnMessage 
+//                 ? 'bg-blue-600 text-white' 
+//                 : 'bg-white text-gray-800 border border-gray-200'
+//         }">
+//             ${!isOwnMessage ? `
+//                 <div class="flex items-center mb-1">
+//                     <img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-4 h-4 rounded-full mr-2">
+//                     <span class="text-xs font-medium ${isOwnMessage ? 'text-blue-200' : 'text-gray-600'}">${message.sender_name}</span>
+//                 </div>
+//             ` : ''}
+//             <div class="message-content">${contentToShow}</div>
+//             <div class="text-xs ${isOwnMessage ? 'text-blue-200' : 'text-gray-500'} mt-1">
+//                 ${formatMessageTimeFast(message.timestamp)}
+//                 ${isOwnMessage ? '<span class="ml-2 status-indicator">✓</span>' : ''}
+//             </div>
+//         </div>
+//     `;
+    
+//     return messageDiv;
+// }
+
+// // Fast time formatting
+// function formatMessageTimeFast(timestamp) {
+//     const date = new Date(timestamp);
+//     const now = new Date();
+//     const diff = now - date;
+    
+//     if (diff < 60000) return 'Now';
+//     if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+//     return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+// }
+
+// // Fast scroll
+// function scrollToBottomFast() {
+//     const container = document.getElementById('messagesContainer');
+//     if (container) {
+//         container.scrollTop = container.scrollHeight;
+//     }
+// }
+
+// // Check if scrolled to bottom
+// function isScrolledToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return true;
+//     return container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+// }
+
+// // Enhanced message sending with immediate UI update
+// function sendMessageUltraFast() {
+//     const input = document.getElementById('messageInput');
+//     const content = input.value.trim();
+    
+//     if (!content) return;
+    
+//     // Immediately clear input and add optimistic message
+//     input.value = '';
+//     updateCharCount();
+    
+//     // Add message to UI immediately
+//     addOptimisticMessageFast(content);
+    
+//     // Send via API
+//     const formData = new FormData();
+//     formData.append('content', content);
+//     formData.append('conversation_id', conversationId);
+//     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+//     fetch('/chat/api/send-message/', {
+//         method: 'POST',
+//         body: formData
+//     }).then(() => {
+//         // Force immediate refresh after sending
+//         setTimeout(ultraFastRefresh, 50);
+//     }).catch(() => {
+//         // Silent error handling
+//         setTimeout(ultraFastRefresh, 100);
+//     });
+// }
+
+// // Add optimistic message immediately
+// function addOptimisticMessageFast(content) {
+//     const container = document.getElementById('messagesContainer');
+//     const messageDiv = document.createElement('div');
+//     messageDiv.className = 'message-bubble flex justify-end';
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-600 text-white">
+//             <div class="message-content">${content}</div>
+//             <div class="text-xs text-blue-200 mt-1">
+//                 Now <span class="ml-2 status-indicator">✓</span>
+//             </div>
+//         </div>
+//     `;
+//     container.appendChild(messageDiv);
+//     scrollToBottomFast();
+// }
+
+// // Track typing with minimal delays
+// function trackUserTypingFast() {
+//     const messageInput = document.getElementById('messageInput');
+//     if (!messageInput) return;
+    
+//     let typingTimer;
+    
+//     messageInput.addEventListener('input', () => {
+//         isUserTyping = true;
+//         clearTimeout(typingTimer);
+        
+//         // Very short typing delay
+//         typingTimer = setTimeout(() => {
+//             isUserTyping = false;
+//         }, 500); // Only 0.5 seconds
+//     });
+    
+//     messageInput.addEventListener('blur', () => {
+//         isUserTyping = false;
+//     });
+// }
+
+// // Initialize ultra-fast system
+// document.addEventListener('DOMContentLoaded', function() {
+//     lastMessageCount = document.querySelectorAll('.message-bubble').length;
+    
+//     trackUserTypingFast();
+    
+//     // Override form submission
+//     const messageForm = document.getElementById('messageForm');
+//     if (messageForm) {
+//         messageForm.onsubmit = function(e) {
+//             e.preventDefault();
+//             sendMessageUltraFast();
+//         };
+//     }
+    
+//     // Start ultra-fast refresh immediately
+//     setTimeout(startUltraFastRefresh, 100);
+    
+//     console.log('Ultra-fast refresh system initialized (100ms intervals)');
+// });
+
+// // Handle page visibility for performance
+// document.addEventListener('visibilitychange', function() {
+//     if (document.hidden) {
+//         stopAutoRefresh();
+//     } else {
+//         startUltraFastRefresh();
+//     }
+// });
+// X1000 FASTER REFRESH SYSTEM
+let refreshInterval = null;
+let lastMessageCount = 0;
+
+// ULTRA AGGRESSIVE - 50ms refresh (20 times per second)
+function startHyperRefresh() {
+    refreshInterval = setInterval(hyperRefresh, 10); // 10ms = 0.01 seconds
 }
 
-// Update the messages UI with new messages
-function updateMessagesUI(messages, wasAtBottom) {
+// Hyper-fast refresh function
+function hyperRefresh() {
+    fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50&_=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messages = data.messages || [];
+        if (messages.length !== lastMessageCount) {
+            updateUI(messages);
+            lastMessageCount = messages.length;
+        }
+    })
+    .catch(() => {}); // Silent errors
+}
+
+// Ultra-fast UI update
+function updateUI(messages) {
     const container = document.getElementById('messagesContainer');
-    if (!container) return;
+    const wasAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 20;
     
-    // Clear existing messages
-    const existingMessages = container.querySelectorAll('.message-bubble');
-    existingMessages.forEach(msg => msg.remove());
+    // Clear and rebuild instantly
+    container.innerHTML = '';
     
-    // Add all messages
     messages.forEach(message => {
-        const messageElement = createMessageElement(message);
-        container.appendChild(messageElement);
+        const div = document.createElement('div');
+        const isOwn = message.sender_id === currentUserId;
+        div.className = `message-bubble flex ${isOwn ? 'justify-end' : 'justify-start'}`;
+        div.innerHTML = `
+            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwn ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border'}">
+                <div>${message.emoji_content || message.content}</div>
+                <div class="text-xs mt-1 ${isOwn ? 'text-blue-200' : 'text-gray-500'}">
+                    ${new Date(message.timestamp).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}
+                    ${isOwn ? '<span class="ml-2">✓</span>' : ''}
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
     });
     
-    // Scroll to bottom only if user was at bottom before refresh
-    if (wasAtBottom) {
-        scrollToBottom();
-    }
+    if (wasAtBottom) container.scrollTop = container.scrollHeight;
 }
 
-// Create message element
-function createMessageElement(message) {
-    const messageDiv = document.createElement('div');
-    const isOwnMessage = message.sender_id === currentUserId;
+// Instant message sending
+function sendInstant() {
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+    if (!content) return;
     
-    messageDiv.className = `message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
-    messageDiv.setAttribute('data-message-id', message.id);
-    
-    const contentToShow = message.emoji_content && message.emoji_content !== message.content 
-    ? message.emoji_content 
-    : (window.emojiConverter ? window.emojiConverter.convert(message.content) : message.content);
-    
-    messageDiv.innerHTML = `
-        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-            isOwnMessage 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white text-gray-800 border border-gray-200'
-        }">
-            ${!isOwnMessage ? `
-                <div class="flex items-center mb-1">
-                    <img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-4 h-4 rounded-full mr-2">
-                    <span class="text-xs font-medium ${isOwnMessage ? 'text-blue-200' : 'text-gray-600'}">${message.sender_name}</span>
-                </div>
-            ` : ''}
-            <div class="message-content">${contentToShow}</div>
-            <div class="text-xs ${isOwnMessage ? 'text-blue-200' : 'text-gray-500'} mt-1">
-                ${formatMessageTime(message.timestamp)}
-                ${isOwnMessage ? '<span class="ml-2">✓</span>' : ''}
+    // Show message instantly in UI
+    const container = document.getElementById('messagesContainer');
+    const div = document.createElement('div');
+    div.className = 'message-bubble flex justify-end';
+    div.innerHTML = `
+        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-600 text-white">
+            <div>${content}</div>
+            <div class="text-xs text-blue-200 mt-1">
+                ${new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})} <span class="ml-2">✓</span>
             </div>
         </div>
     `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
     
-    return messageDiv;
-}
-
-// Format message timestamp
-function formatMessageTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
+    // Clear input
+    input.value = '';
     
-    if (diff < 60000) { // Less than 1 minute
-        return 'Just now';
-    } else if (diff < 3600000) { // Less than 1 hour
-        return Math.floor(diff / 60000) + 'm ago';
-    } else if (date.toDateString() === now.toDateString()) { // Same day
-        return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
-    } else {
-        return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-    }
-}
-
-// Check if user has scrolled to bottom
-function isScrolledToBottom() {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return true;
-    
-    const threshold = 100; // pixels from bottom
-    return container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
-}
-
-// Smooth scroll to bottom
-function scrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    if (container) {
-        container.scrollTo({
-            top: container.scrollHeight,
-            behavior: 'smooth'
-        });
-    }
-}
-
-// Track user typing
-function trackUserTyping() {
-    const messageInput = document.getElementById('messageInput');
-    if (!messageInput) return;
-    
-    let typingTimer;
-    
-    messageInput.addEventListener('input', () => {
-        isUserTyping = true;
-        clearTimeout(typingTimer);
-        
-        // Stop considering user as typing after 3 seconds of no input
-        typingTimer = setTimeout(() => {
-            isUserTyping = false;
-        }, 3000);
-    });
-    
-    messageInput.addEventListener('blur', () => {
-        isUserTyping = false;
-    });
-}
-
-// Track user scroll behavior
-function trackUserScroll() {
-    const container = document.getElementById('messagesContainer');
-    if (!container) return;
-    
-    container.addEventListener('scroll', () => {
-        userScrolledUp = !isScrolledToBottom();
-        
-        // If user scrolls to bottom, resume normal auto-refresh
-        if (!userScrolledUp) {
-            setTimeout(() => {
-                userScrolledUp = false;
-            }, 1000);
-        }
-    });
-}
-
-// Enhanced message sending with auto-refresh pause
-function sendMessageWithAutoRefresh() {
-    const input = document.getElementById('messageInput');
-    const content = input.value.trim();
-    
-    if (!content) return;
-    
-    // Temporarily stop auto-refresh while sending
-    stopAutoRefresh();
-    
-    // Send via form submission (fallback method that works reliably)
+    // Send to server
     const formData = new FormData();
     formData.append('content', content);
     formData.append('conversation_id', conversationId);
     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
     
-    fetch('/chat/api/send-message/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Clear input
-            input.value = '';
-            updateCharCount();
-            
-            // Force immediate refresh to show sent message
-            setTimeout(() => {
-                refreshMessages();
-                startAutoRefresh(); // Resume auto-refresh
-            }, 500);
-        } else {
-            console.error('Send message error:', data.message);
-            showNotification('Failed to send message: ' + data.message, 'error');
-            startAutoRefresh(); // Resume auto-refresh even on error
-        }
-    })
-    .catch(error => {
-        console.error('Network error:', error);
-        showNotification('Network error. Please try again.', 'error');
-        startAutoRefresh(); // Resume auto-refresh
-    });
+    fetch('/chat/api/send-message/', { method: 'POST', body: formData })
+    .then(() => setTimeout(hyperRefresh, 10)) // Refresh after 10ms
+    .catch(() => setTimeout(hyperRefresh, 10));
 }
 
-// Initialize everything when page loads
+// Initialize hyper system
 document.addEventListener('DOMContentLoaded', function() {
-    // Get initial message count
     lastMessageCount = document.querySelectorAll('.message-bubble').length;
     
-    // Start tracking user behavior
-    trackUserTyping();
-    trackUserScroll();
-    
-    // Override the default send message function
-    const messageForm = document.getElementById('messageForm');
-    if (messageForm) {
-        messageForm.onsubmit = function(e) {
+    // Override form
+    const form = document.getElementById('messageForm');
+    if (form) {
+        form.onsubmit = function(e) {
             e.preventDefault();
-            sendMessageWithAutoRefresh();
+            sendInstant();
         };
     }
     
-    // Start auto-refresh after a short delay
-    setTimeout(startAutoRefresh, 2000);
-    
-    console.log('Auto-refresh system initialized');
-});
-
-// Pause auto-refresh when page is not visible
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        stopAutoRefresh();
-    } else {
-        startAutoRefresh();
-    }
+    // Start hyper refresh immediately
+    startHyperRefresh();
+    console.log('HYPER REFRESH: 50ms intervals (20x per second)');
 });
 </script>
 {% endblock %}

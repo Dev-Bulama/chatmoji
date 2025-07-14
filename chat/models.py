@@ -76,7 +76,7 @@ class Message(models.Model):
         if self.message_type == 'text' and self.content:
             try:
                 if not self.emoji_content:  # Only convert if not already converted
-                    self.emoji_content = self.convert_text_to_emojis(self.content)
+                    self.emoji_content = self.content
             except Exception as e:
                 logger.error(f"Error converting text to emojis: {e}")
                 self.emoji_content = self.content  # Fallback to original
