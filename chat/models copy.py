@@ -76,7 +76,7 @@ class Message(models.Model):
         if self.message_type == 'text' and self.content:
             try:
                 if not self.emoji_content:  # Only convert if not already converted
-                    self.emoji_content = self.content
+                    self.emoji_content = self.convert_text_to_emojis(self.content)
             except Exception as e:
                 logger.error(f"Error converting text to emojis: {e}")
                 self.emoji_content = self.content  # Fallback to original
@@ -325,24 +325,24 @@ class Message(models.Model):
             'project': '📋', 'task': '✅', 'todo': '📝', 'memo': '📝',
             'budget': '💰', 'invoice': '🧾', 'contract': '📜', 'signature': '✍️',
             'overtime': '⏰', 'break': '☕', 'lunch': '🍽️', 'vacation': '🏖️',
-            #=== PRONOUNSok ===
-            'i': '👤', 'me': '👤', 'myself': '👤',
-            'you': '👥', 'yourself': '👥', 'yourselves': '👥',
-            'he': '👨', 'him': '👨', 'himself': '👨',
-            'she': '👩', 'her': '👩', 'herself': '👩',
-            'it': '📦', 'itself': '📦',
-            'we': '👫', 'us': '👫', 'ourselves': '👫',
-            'they': '👥', 'them': '👥', 'themselves': '👥',
-            'my': '👤', 'mine': '👤',
-            'your': '👥', 'yours': '👥',
-            'his': '👨', 'hers': '👩', 'its': '📦',
-            'our': '👫', 'ours': '👫',
-            'their': '👥', 'theirs': '👥',
-            'this': '👈', 'that': '👉', 'these': '👈', 'those': '👉',
-            'here': '📍', 'there': '📍', 'everywhere': '🌐', 'somewhere': '🗺️',
-            'who': '❓', 'whom': '❓', 'whose': '❓',
-            'what': '❓', 'which': '❓',
-            'where': '📍', 'when': '⏰', 'why': '❓', 'how': '❓',
+            #=== PRONOUNS ===
+            # 'i': '👤', 'me': '👤', 'myself': '👤',
+            # 'you': '👥', 'yourself': '👥', 'yourselves': '👥',
+            # 'he': '👨', 'him': '👨', 'himself': '👨',
+            # 'she': '👩', 'her': '👩', 'herself': '👩',
+            # 'it': '📦', 'itself': '📦',
+            # 'we': '👫', 'us': '👫', 'ourselves': '👫',
+            # 'they': '👥', 'them': '👥', 'themselves': '👥',
+            # 'my': '👤', 'mine': '👤',
+            # 'your': '👥', 'yours': '👥',
+            # 'his': '👨', 'hers': '👩', 'its': '📦',
+            # 'our': '👫', 'ours': '👫',
+            # 'their': '👥', 'theirs': '👥',
+            # 'this': '👈', 'that': '👉', 'these': '👈', 'those': '👉',
+            # 'here': '📍', 'there': '📍', 'everywhere': '🌐', 'somewhere': '🗺️',
+            # 'who': '❓', 'whom': '❓', 'whose': '❓',
+            # 'what': '❓', 'which': '❓',
+            # 'where': '📍', 'when': '⏰', 'why': '❓', 'how': '❓',
             #=== ADJECTIVES ===
             'big': '📏', 'large': '📏', 'huge': '🦣', 'giant': '🦣', 'enormous': '🐘',
             'small': '🤏', 'little': '🤏', 'tiny': '🐜', 'mini': '🤏', 'microscopic': '🔬',
