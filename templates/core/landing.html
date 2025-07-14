@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+
+{% block title %}ChatMoji - Where Every Word Becomes an Emoji! 🎉{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+    }
+    
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .float-animation {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+        100% { transform: translateY(0px); }
+    }
+    
+    .feature-card {
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .emoji-demo {
+        background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .testimonial-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: transform 0.3s ease;
+    }
+    
+    .testimonial-card:hover {
+        transform: scale(1.05);
+    }
+    
+    .stats-number {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .pulse-btn {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .8; }
+    }
+    
+    .scroll-indicator {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+        40% { transform: translateX(-50%) translateY(-10px); }
+        60% { transform: translateX(-50%) translateY(-5px); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-gradient min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div class="container mx-auto px-4 text-center relative z-10">
+        <!-- Main Hero Content -->
+        <div class="max-w-4xl mx-auto">
+            <div class="float-animation text-8xl mb-8">
+                💬✨🎉
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+                Welcome to
+                <span class="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
+                    ChatMoji
+                </span>
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
+                The revolutionary chat app where <strong>every single word</strong> you type magically transforms into emojis! 
+                Make your conversations more fun, expressive, and unforgettable! 🚀
+            </p>
+            
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <a href="{% url 'accounts:register' %}" 
+                   class="bg-white text-purple-600 font-bold py-4 px-8 rounded-full text-lg hover:bg-gray-100 transition duration-300 transform hover:scale-105 shadow-lg pulse-btn">
+                    <i class="fas fa-rocket mr-2"></i> Start Chatting Now - FREE!
+                </a>
+                <a href="{% url 'accounts:login' %}" 
+                   class="bg-transparent border-2 border-white text-white font-bold py-4 px-8 rounded-full text-lg hover:bg-white hover:text-purple-600 transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                </a>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
+                <div class="text-center">
+                    <div class="stats-number">500+</div>
+                    <div class="text-white/80">Emoji Mappings</div>
+                </div>
+                <div class="text-center">
+                    <div class="stats-number">100%</div>
+                    <div class="text-white/80">Free to Use</div>
+                </div>
+                <div class="text-center">
+                    <div class="stats-number">⚡</div>
+                    <div class="text-white/80">Real-time</div>
+                </div>
+                <div class="text-center">
+                    <div class="stats-number">📱</div>
+                    <div class="text-white/80">Mobile Ready</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Animated Background Elements -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-4 -left-4 w-72 h-72 bg-yellow-400 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div class="absolute -bottom-8 -right-4 w-72 h-72 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div class="absolute -top-8 -right-8 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator text-white text-2xl">
+        <i class="fas fa-chevron-down"></i>
+    </div>
+</section>
+
+<!-- Live Demo Section -->
+<section class="py-20 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-magic text-purple-600 mr-3"></i>
+                See The Magic In Action!
+            </h2>
+            <p class="text-xl text-gray-600 mb-8">
+                Type anything below and watch it transform into emojis instantly!
+            </p>
+            
+            <div class="emoji-demo">
+                <div class="bg-white rounded-lg p-6 shadow-lg">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Try it yourself - Type anything:
+                    </label>
+                    <input type="text" id="heroDemo" 
+                           class="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
+                           placeholder="Type 'Hello world I love this amazing app!' or anything else...">
+                    
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 min-h-16">
+                        <div class="text-sm text-gray-600 mb-2">✨ Emoji Magic Result:</div>
+                        <div id="heroDemoOutput" class="text-xl text-gray-800 font-medium">
+                            Start typing to see the magic happen! 🎉
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 mt-12">
+                <div class="bg-white rounded-lg p-6 shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Before ChatMoji:</h3>
+                    <div class="text-gray-600 text-lg bg-gray-100 p-4 rounded-lg">
+                        "Hey how are you doing today? I love this app!"
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg p-6 shadow-lg">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">After ChatMoji:</h3>
+                    <div class="text-gray-600 text-lg bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg">
+                        "Hey 👋 how 🤔 are 👁️ you 👆 doing 💪 today 📅? I 👤 love ❤️ this 👆 app 📱!"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-20 hero-gradient">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-white mb-4">
+                Why Choose ChatMoji?
+            </h2>
+            <p class="text-xl text-white/90 max-w-3xl mx-auto">
+                We've packed ChatMoji with amazing features that make chatting more fun than ever before!
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">🚀</div>
+                <h3 class="text-2xl font-bold text-white mb-4">Real-time Messaging</h3>
+                <p class="text-white/90">
+                    Lightning-fast WebSocket technology ensures your emoji-filled messages are delivered instantly to your friends!
+                </p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">😊</div>
+                <h3 class="text-2xl font-bold text-white mb-4">500+ Emoji Mappings</h3>
+                <p class="text-white/90">
+                    Every word gets transformed! From "hello" to "amazing" - we've got emojis for everything, plus smart fallbacks!
+                </p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">👥</div>
+                <h3 class="text-2xl font-bold text-white mb-4">Smart Friend System</h3>
+                <p class="text-white/90">
+                    Send friend requests, see who's online, and build your emoji-loving community with ease!
+                </p>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">📱</div>
+                <h3 class="text-2xl font-bold text-white mb-4">Mobile Perfect</h3>
+                <p class="text-white/90">
+                    Fully responsive design that works beautifully on phones, tablets, and desktops. Chat anywhere!
+                </p>
+            </div>
+            
+            <!-- Feature 5 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">⚡</div>
+                <h3 class="text-2xl font-bold text-white mb-4">Typing Indicators</h3>
+                <p class="text-white/90">
+                    See when your friends are typing and get read receipts - just like the best messaging apps!
+                </p>
+            </div>
+            
+            <!-- Feature 6 -->
+            <div class="feature-card rounded-xl p-8 text-center">
+                <div class="text-6xl mb-6">🎨</div>
+                <h3 class="text-2xl font-bold text-white mb-4">Beautiful Interface</h3>
+                <p class="text-white/90">
+                    Clean, modern design with smooth animations and a user experience that feels premium!
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                How ChatMoji Works
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Getting started is super easy! Just three simple steps to emoji-powered conversations.
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Step 1 -->
+            <div class="text-center">
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full w-24 h-24 flex items-center justify-center text-3xl font-bold mx-auto mb-6">
+                    1
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Sign Up Free</h3>
+                <p class="text-gray-600 text-lg">
+                    Create your account in seconds. No credit card required, no hidden fees. 
+                    Just pure emoji-powered fun!
+                </p>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="text-center">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-24 h-24 flex items-center justify-center text-3xl font-bold mx-auto mb-6">
+                    2
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Add Friends</h3>
+                <p class="text-gray-600 text-lg">
+                    Search for friends by name or email. Send friend requests and build your 
+                    emoji-loving community!
+                </p>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="text-center">
+                <div class="bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full w-24 h-24 flex items-center justify-center text-3xl font-bold mx-auto mb-6">
+                    3
+                </div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Start Chatting!</h3>
+                <p class="text-gray-600 text-lg">
+                    Type normally and watch every word transform into emojis automatically. 
+                    It's like magic! ✨
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="py-20 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                What Our Users Are Saying
+            </h2>
+            <p class="text-xl text-gray-600">
+                Join thousands of happy users who love ChatMoji!
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Testimonial 1 -->
+            <div class="testimonial-card rounded-xl p-8 shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                        S
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="font-bold text-gray-800">Sarah Johnson</h4>
+                        <p class="text-gray-600 text-sm">College Student</p>
+                    </div>
+                </div>
+                <p class="text-gray-700 mb-4">
+                    "ChatMoji has completely changed how I chat with my friends! Every conversation 
+                    is now so much more fun and expressive. I can't imagine going back to regular messaging!"
+                </p>
+                <div class="flex text-yellow-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+            
+            <!-- Testimonial 2 -->
+            <div class="testimonial-card rounded-xl p-8 shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                        M
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="font-bold text-gray-800">Mike Chen</h4>
+                        <p class="text-gray-600 text-sm">Software Developer</p>
+                    </div>
+                </div>
+                <p class="text-gray-700 mb-4">
+                    "As a developer, I appreciate the clean interface and real-time features. But as a user, 
+                    I absolutely love how every word becomes an emoji. It's addictive!"
+                </p>
+                <div class="flex text-yellow-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+            
+            <!-- Testimonial 3 -->
+            <div class="testimonial-card rounded-xl p-8 shadow-lg">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                        E
+                    </div>
+                    <div class="ml-4">
+                        <h4 class="font-bold text-gray-800">Emma Williams</h4>
+                        <p class="text-gray-600 text-sm">Marketing Manager</p>
+                    </div>
+                </div>
+                <p class="text-gray-700 mb-4">
+                    "My team uses ChatMoji for our casual conversations and it's brought so much joy to our 
+                    workplace communication. Everyone is always laughing at the emoji transformations!"
+                </p>
+                <div class="flex text-yellow-400">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="py-20 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                Frequently Asked Questions
+            </h2>
+            <p class="text-xl text-gray-600">
+                Everything you need to know about ChatMoji
+            </p>
+        </div>
+        
+        <div class="max-w-4xl mx-auto">
+            <div class="space-y-6">
+                <!-- FAQ 1 -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        Is ChatMoji really free?
+                    </h3>
+                    <p class="text-gray-700">
+                        Yes! ChatMoji is completely free to use. No hidden fees, no premium subscriptions, 
+                        no credit card required. Just pure emoji-powered fun!
+                    </p>
+                </div>
+                
+                <!-- FAQ 2 -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        How does the emoji conversion work?
+                    </h3>
+                    <p class="text-gray-700">
+                        ChatMoji automatically analyzes every word you type and matches it with our database of 500+ 
+                        emoji mappings. For words we don't have mapped, we use smart fallback algorithms to assign 
+                        appropriate emojis based on word characteristics.
+                    </p>
+                </div>
+                
+                <!-- FAQ 3 -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        Can I turn off the emoji conversion?
+                    </h3>
+                    <p class="text-gray-700">
+                        The emoji conversion is what makes ChatMoji special! However, we understand some users might 
+                        want options, so this feature is on our roadmap for future updates.
+                    </p>
+                </div>
+                
+                <!-- FAQ 4 -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        Does ChatMoji work on mobile devices?
+                    </h3>
+                    <p class="text-gray-700">
+                        Absolutely! ChatMoji is fully responsive and works perfectly on phones, tablets, and desktops. 
+                        The interface adapts beautifully to any screen size.
+                    </p>
+                </div>
+                
+                <!-- FAQ 5 -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">
+                        Is my data safe with ChatMoji?
+                    </h3>
+                    <p class="text-gray-700">
+                        Your privacy and security are our top priorities. We use industry-standard encryption 
+                        and security practices to protect your data. We never sell your information to third parties.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA Section -->
+<section class="py-20 hero-gradient">
+    <div class="container mx-auto px-4 text-center">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-6">
+                Ready to Transform Your Conversations?
+            </h2>
+            <p class="text-xl text-white/90 mb-8">
+                Join thousands of users who are already having more fun with ChatMoji!
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'accounts:register' %}" 
+                   class="bg-white text-purple-600 font-bold py-4 px-8 rounded-full text-lg hover:bg-gray-100 transition duration-300 transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-rocket mr-2"></i> Get Started - It's FREE!
+                </a>
+                <a href="{% url 'accounts:login' %}" 
+                   class="bg-transparent border-2 border-white text-white font-bold py-4 px-8 rounded-full text-lg hover:bg-white hover:text-purple-600 transition duration-300 transform hover:scale-105">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+                </a>
+            </div>
+            
+            <div class="mt-8 text-white/80 text-sm">
+                <i class="fas fa-shield-alt mr-2"></i>
+                100% Free • No Credit Card Required • Start Chatting in Seconds
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enhanced emoji conversion map
+    const emojiMap = {
+        // Greetings & Social
+        'hello': '👋', 'hi': '👋', 'hey': '👋', 'goodbye': '👋', 'bye': '👋', 'welcome': '🤗',
+        'thanks': '🙏', 'thank': '🙏', 'please': '🙏', 'sorry': '😔', 'excuse': '🤷',
+        
+        // Emotions & Feelings
+        'love': '❤️', 'heart': '❤️', 'like': '👍', 'hate': '💔', 'angry': '😠', 'mad': '😡',
+        'happy': '😊', 'joy': '😄', 'smile': '😊', 'laugh': '😂', 'lol': '😂', 'haha': '😆',
+        'sad': '😢', 'cry': '😭', 'tears': '😭', 'hurt': '💔', 'pain': '😣', 'sick': '🤒',
+        'excited': '🤩', 'amazing': '🤩', 'awesome': '🔥', 'cool': '😎', 'nice': '👌',
+        'beautiful': '😍', 'pretty': '💅', 'ugly': '🤮', 'scared': '😨', 'fear': '😰',
+        'tired': '😴', 'sleep': '😴', 'dream': '💭', 'wake': '⏰', 'energy': '⚡',
+        
+        // Actions & Verbs
+        'go': '🚶', 'walk': '🚶', 'run': '🏃', 'jump': '🦘', 'dance': '💃', 'sing': '🎤',
+        'eat': '🍴', 'drink': '🥤', 'cook': '👨‍🍳', 'read': '📖', 'write': '✍️', 'draw': '🎨',
+        'play': '🎮', 'game': '🎮', 'watch': '👀', 'see': '👁️', 'look': '👀', 'listen': '👂',
+        'talk': '💬', 'speak': '🗣️', 'say': '💭', 'tell': '📢', 'call': '📞', 'text': '📱',
+        'work': '💼', 'job': '💼', 'study': '📚', 'learn': '🎓', 'teach': '👨‍🏫', 'help': '🤝',
+        'buy': '💰', 'sell': '💸', 'pay': '💳', 'shop': '🛍️', 'save': '💰', 'spend': '💸',
+        'drive': '🚗', 'travel': '✈️', 'fly': '✈️', 'swim': '🏊', 'bike': '🚴', 'boat': '⛵',
+        
+        // People & Relationships
+        'i': '👤', 'me': '👤', 'you': '👆', 'we': '👥', 'they': '👥', 'us': '👥',
+        'family': '👨‍👩‍👧‍👦', 'mom': '👩', 'dad': '👨', 'baby': '👶', 'child': '🧒', 'kid': '🧒',
+        'friend': '👫', 'friends': '👥', 'boyfriend': '👨‍❤️‍👨', 'girlfriend': '👩‍❤️‍👩',
+        'brother': '👨', 'sister': '👩', 'grandma': '👵', 'grandpa': '👴',
+        
+        // Objects & Things
+        'phone': '📱', 'computer': '💻', 'laptop': '💻', 'internet': '🌐', 'wifi': '📶',
+        'car': '🚗', 'bus': '🚌', 'train': '🚊', 'plane': '✈️', 'ship': '🚢', 'bike': '🚴',
+        'house': '🏠', 'home': '🏡', 'room': '🏠', 'door': '🚪', 'window': '🪟', 'bed': '🛏️',
+        'book': '📖', 'pen': '🖊️', 'paper': '📄', 'bag': '👜', 'clothes': '👕', 'shoes': '👟',
+        
+        // Food & Drinks
+        'food': '🍽️', 'pizza': '🍕', 'burger': '🍔', 'fries': '🍟', 'pasta': '🍝', 'rice': '🍚',
+        'coffee': '☕', 'tea': '🍵', 'water': '💧', 'juice': '🧃', 'beer': '🍺', 'wine': '🍷',
+        'apple': '🍎', 'banana': '🍌', 'orange': '🍊', 'grape': '🍇', 'cherry': '🍒',
+        
+        // Time & Weather
+        'time': '⏰', 'day': '☀️', 'night': '🌙', 'morning': '🌅', 'evening': '🌆',
+        'today': '📅', 'tomorrow': '📅', 'yesterday': '📅', 'week': '📅', 'month': '📅', 'year': '📅',
+        'sun': '☀️', 'rain': '🌧️', 'snow': '❄️', 'wind': '💨', 'hot': '🔥', 'cold': '🥶',
+        
+        // Colors
+        'red': '🔴', 'blue': '🔵', 'green': '🟢', 'yellow': '🟡', 'orange': '🟠', 'purple': '🟣',
+        'pink': '💗', 'black': '⚫', 'white': '⚪', 'brown': '🤎', 'gray': '⚪', 'gold': '🟡',
+        
+        // Animals
+        'cat': '🐱', 'dog': '🐶', 'bird': '🐦', 'fish': '🐠', 'lion': '🦁', 'tiger': '🐅',
+        'elephant': '🐘', 'monkey': '🐵', 'bear': '🐻', 'pig': '🐷', 'cow': '🐄', 'horse': '🐴',
+        
+        // Responses & Expressions
+        'yes': '✅', 'no': '❌', 'maybe': '🤷', 'ok': '👌', 'okay': '👌', 'sure': '👍',
+        'wow': '😮', 'omg': '😱', 'lol': '😂', 'haha': '😆', 'hmm': '🤔', 'oh': '😮',
+        'really': '😲', 'seriously': '😐', 'exactly': '💯', 'totally': '💯', 'absolutely': '💯',
+        
+        // Tech & App related
+        'app': '📱', 'chat': '💬', 'message': '💬', 'emoji': '😊', 'technology': '💻', 'digital': '📱',
+        'website': '🌐', 'online': '🌐', 'social': '👥', 'network': '🌐', 'platform': '💻',
+        'software': '💻', 'program': '💻', 'code': '💻', 'developer': '👨‍💻', 'design': '🎨'
+    };
+
+    // Enhanced emoji conversion function
+    function convertToEmojis(text) {
+        if (!text.trim()) {
+            return 'Start typing to see the magic happen! 🎉';
+        }
+
+        const words = text.split(/(\s+)/);
+        const convertedWords = words.map(word => {
+            const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+            
+            if (!cleanWord || /^\s+$/.test(word)) {
+                return word;
+            }
+            
+            // Check direct mapping first
+            if (emojiMap[cleanWord]) {
+                return `${word} ${emojiMap[cleanWord]}`;
+            }
+            
+            // Check for partial matches
+            for (const [key, emoji] of Object.entries(emojiMap)) {
+                if (cleanWord.includes(key) && key.length > 2) {
+                    return `${word} ${emoji}`;
+                }
+            }
+            
+            // Smart fallback emojis based on word characteristics
+            let emoji = '✨';
+            
+            if (cleanWord.length === 1) {
+                emoji = '👁️';
+            } else if (cleanWord.length === 2) {
+                emoji = '👀';
+            } else if (cleanWord.length <= 4) {
+                emoji = '💭';
+            } else if (cleanWord.length <= 6) {
+                emoji = '🌟';
+            } else if (cleanWord.length <= 8) {
+                emoji = '🎯';
+            } else {
+                emoji = '🚀';
+            }
+            
+            // Special patterns
+            if (/[0-9]/.test(cleanWord)) emoji = '🔢';
+            if (cleanWord.includes('tion')) emoji = '⚡';
+            if (cleanWord.includes('ing')) emoji = '🔄';
+            if (cleanWord.includes('ly')) emoji = '💫';
+            if (cleanWord.includes('er')) emoji = '👤';
+            if (cleanWord.includes('est')) emoji = '🏆';
+            if (cleanWord.includes('ful')) emoji = '🌈';
+            if (cleanWord.includes('less')) emoji = '⭕';
+            
+            return `${word} ${emoji}`;
+        });
+
+        return convertedWords.join('');
+    }
+
+    // Initialize demo when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const demoInput = document.getElementById('heroDemo');
+        const demoOutput = document.getElementById('heroDemoOutput');
+        
+        if (demoInput && demoOutput) {
+            demoInput.addEventListener('input', function() {
+                const converted = convertToEmojis(this.value);
+                demoOutput.innerHTML = converted;
+            });
+            
+            // Auto-demo on page load
+            setTimeout(() => {
+                const demoText = "Hello world I love this amazing app!";
+                demoInput.value = demoText;
+                demoOutput.innerHTML = convertToEmojis(demoText);
+            }, 1000);
+        }
+        
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

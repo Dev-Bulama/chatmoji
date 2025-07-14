@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - ChatMoji{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-600">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">Welcome Back!</h2>
+            <p class="text-gray-600 mt-2">Sign in to continue chatting</p>
+        </div>
+        
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    {% for error in form.username.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    {% for error in form.password.errors %}
+                        <p class="text-red-500 text-xs mt-1">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center">
+                <input type="checkbox" id="rememberMe" name="remember_me" class="mr-2">
+                <label for="rememberMe" class="text-sm text-gray-600">Remember me</label>
+            </div>
+            
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200">
+                <i class="fas fa-sign-in-alt mr-2"></i> Sign In
+            </button>
+        </form>
+        
+        <div class="mt-6 text-center">
+            <p class="text-gray-600">Don't have an account? 
+                <a href="{% url 'accounts:register' %}" class="text-blue-600 hover:underline">Sign up here</a>
+            </p>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="{% url 'core:landing' %}" class="text-sm text-gray-500 hover:text-gray-700">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Demo Users Info -->
+<div class="fixed bottom-4 right-4 bg-white bg-opacity-90 backdrop-filter backdrop-blur-lg rounded-lg p-4 shadow-lg max-w-sm">
+    <h4 class="font-bold text-gray-800 mb-2">🎯 Demo Users</h4>
+    <p class="text-sm text-gray-600 mb-2">Try these accounts:</p>
+    <div class="space-y-1 text-xs text-gray-700">
+        <div><strong>john@example.com</strong> / password123</div>
+        <div><strong>jane@example.com</strong> / password123</div>
+        <div><strong>mike@example.com</strong> / password123</div>
+    </div>
+</div>
+{% endblock %}

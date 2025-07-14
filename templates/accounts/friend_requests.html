@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+{% csrf_token %}
+{% block title %}Friend Requests - ChatMoji{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="container mx-auto px-4 max-w-4xl">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Friend Requests</h1>
+                <p class="text-gray-600">Manage your incoming and outgoing friend requests</p>
+            </div>
+            <div class="flex space-x-2">
+                <a href="{% url 'accounts:friends_list' %}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-users mr-2"></i> Friends
+                </a>
+                <a href="{% url 'chat:dashboard' %}" 
+                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-comments mr-2"></i> Chat
+                </a>
+            </div>
+        </div>
+
+        <!-- Received Requests -->
+        <div class="mb-8">
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="bg-green-50 px-6 py-4 border-b border-green-100">
+                    <h2 class="text-xl font-semibold text-green-800">
+                        <i class="fas fa-inbox mr-2"></i> Received Requests
+                        {% if received_requests %}
+                        <span class="bg-green-500 text-white text-sm px-2 py-1 rounded-full ml-2">{{ received_requests|length }}</span>
+                        {% endif %}
+                    </h2>
+                    <p class="text-green-600 text-sm">People who want to be your friend</p>
+                </div>
+                
+                <div class="p-6">
+                    {% if received_requests %}
+                    <div class="space-y-4">
+                        {% for request in received_requests %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg" id="request-{{ request.id }}">
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <img src="{{ request.from_user.avatar_url }}" alt="{{ request.from_user.full_name }}" 
+                                         class="w-16 h-16 rounded-full">
+                                    {% if request.from_user.is_online %}
+                                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ request.from_user.full_name }}</h3>
+                                    <p class="text-gray-600">{{ request.from_user.email }}</p>
+                                    <p class="text-gray-500 text-sm">
+                                        Sent {{ request.created_at|timesince }} ago
+                                    </p>
+                                    {% if request.from_user.bio %}
+                                    <p class="text-gray-700 text-sm mt-1">{{ request.from_user.bio|truncatechars:80 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="respondToRequest('{{ request.id }}', 'accept')" 
+                                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                    <i class="fas fa-check mr-2"></i> Accept
+                                </button>
+                                <button onclick="respondToRequest('{{ request.id }}', 'reject')" 
+                                        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                                    <i class="fas fa-times mr-2"></i> Reject
+                                </button>
+                                <a href="{% url 'accounts:user_profile' request.from_user.id %}" 
+                                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                                    <i class="fas fa-eye mr-2"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">📬</div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">No pending requests</h3>
+                        <p class="text-gray-600">You don't have any friend requests at the moment.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sent Requests -->
+        <div>
+            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div class="bg-blue-50 px-6 py-4 border-b border-blue-100">
+                    <h2 class="text-xl font-semibold text-blue-800">
+                        <i class="fas fa-paper-plane mr-2"></i> Sent Requests
+                        {% if sent_requests %}
+                        <span class="bg-blue-500 text-white text-sm px-2 py-1 rounded-full ml-2">{{ sent_requests|length }}</span>
+                        {% endif %}
+                    </h2>
+                    <p class="text-blue-600 text-sm">Friend requests you've sent</p>
+                </div>
+                
+                <div class="p-6">
+                    {% if sent_requests %}
+                    <div class="space-y-4">
+                        {% for request in sent_requests %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg" id="sent-request-{{ request.id }}">
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <img src="{{ request.to_user.avatar_url }}" alt="{{ request.to_user.full_name }}" 
+                                         class="w-16 h-16 rounded-full">
+                                    {% if request.to_user.is_online %}
+                                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ request.to_user.full_name }}</h3>
+                                    <p class="text-gray-600">{{ request.to_user.email }}</p>
+                                    <p class="text-gray-500 text-sm">
+                                        Sent {{ request.created_at|timesince }} ago
+                                    </p>
+                                    {% if request.to_user.bio %}
+                                    <p class="text-gray-700 text-sm mt-1">{{ request.to_user.bio|truncatechars:80 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <span class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg text-sm font-medium">
+                                    <i class="fas fa-clock mr-2"></i> Pending
+                                </span>
+                                <button onclick="cancelRequest('{{ request.id }}')" 
+                                        class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                                    <i class="fas fa-times mr-2"></i> Cancel
+                                </button>
+                                <a href="{% url 'accounts:user_profile' request.to_user.id %}" 
+                                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                                    <i class="fas fa-eye mr-2"></i> View
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12">
+                        <div class="text-6xl mb-4">📤</div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">No sent requests</h3>
+                        <p class="text-gray-600 mb-6">You haven't sent any friend requests yet.</p>
+                        <a href="{% url 'accounts:friends_list' %}" 
+                           class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-search mr-2"></i> Find Friends
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        {% if received_requests or sent_requests %}
+        <div class="mt-8 bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">{{ received_requests|length }}</div>
+                    <div class="text-sm text-green-800">Received</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600">{{ sent_requests|length }}</div>
+                    <div class="text-sm text-blue-800">Sent</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600">{{ friends|length|default:0 }}</div>
+                    <div class="text-sm text-purple-800">Friends</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get CSRF token more reliably
+    function getCSRFToken() {
+        const tokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (tokenElement) {
+            return tokenElement.value;
+        }
+        // Fallback: get from cookies
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    function respondToRequest(requestId, action) {
+        const csrfToken = getCSRFToken();
+        if (!csrfToken) {
+            alert('Security token not found. Please refresh the page.');
+            return;
+        }
+
+        fetch('/accounts/api/respond-friend-request/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'request_id': requestId,
+                'action': action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the request from the UI
+                const requestElement = document.querySelector(`[data-request-id="${requestId}"]`) || 
+                                     document.querySelector(`button[onclick*="${requestId}"]`)?.closest('.bg-white');
+                if (requestElement) {
+                    requestElement.style.transition = 'opacity 0.3s ease-out';
+                    requestElement.style.opacity = '0';
+                    setTimeout(() => {
+                        requestElement.remove();
+                        checkEmptyState();
+                    }, 300);
+                }
+                
+                // Show success message
+                if (action === 'accept') {
+                    showNotification('Friend request accepted! 🎉', 'success');
+                } else {
+                    showNotification('Friend request rejected.', 'info');
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+    
+    function cancelRequest(requestId) {
+        if (!confirm('Are you sure you want to cancel this friend request?')) {
+            return;
+        }
+        
+        // For now, we'll implement this as rejecting our own request
+        // In a real implementation, you'd have a separate endpoint
+        alert('Cancel request feature coming soon!');
+    }
+    
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    function checkEmptyState() {
+        // Check if we need to show empty state for received requests
+        const receivedSection = document.querySelector('.space-y-4');
+        if (receivedSection && receivedSection.children.length === 0) {
+            location.reload(); // Simple reload for now
+        }
+    }
+</script>
+{% endblock %}

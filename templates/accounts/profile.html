@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.full_name }} - Profile{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 py-8">
+    <div class="container mx-auto px-4 max-w-4xl">
+        <!-- Profile Header -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+            <div class="h-32 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <div class="relative px-6 pb-6">
+                <div class="flex flex-col sm:flex-row items-center sm:items-end -mt-16">
+                    <div class="relative">
+                        <img src="{{ profile_user.avatar_url }}" alt="{{ profile_user.full_name }}" 
+                             class="w-32 h-32 rounded-full border-4 border-white shadow-lg">
+                        {% if profile_user.is_online %}
+                        <div class="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-3 border-white rounded-full"></div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left flex-1">
+                        <h1 class="text-2xl font-bold text-gray-900">{{ profile_user.full_name }}</h1>
+                        <p class="text-gray-600">{{ profile_user.email }}</p>
+                        {% if profile_user.is_online %}
+                        <p class="text-green-500 text-sm font-medium">Online</p>
+                        {% else %}
+                        <p class="text-gray-500 text-sm">Last seen {{ profile_user.last_seen|timesince }} ago</p>
+                        {% endif %}
+                        {% if profile_user.bio %}
+                        <p class="text-gray-700 mt-2">{{ profile_user.bio }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 sm:mt-0 flex space-x-3">
+                        {% if is_own_profile %}
+                        <a href="{% url 'accounts:edit_profile' %}" 
+                           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-edit mr-2"></i> Edit Profile
+                        </a>
+                        {% else %}
+                            {% if are_friends %}
+                            <a href="{% url 'chat:start_conversation' profile_user.id %}" 
+                               class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                                <i class="fas fa-comments mr-2"></i> Message
+                            </a>
+                            {% elif friend_request_sent %}
+                            <button class="bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed" disabled>
+                                <i class="fas fa-clock mr-2"></i> Request Sent
+                            </button>
+                            {% elif friend_request_received %}
+                            <div class="flex space-x-2">
+    <button onclick="respondToFriendRequest('{{ profile_user.id }}', 'accept')" 
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+        <i class="fas fa-check mr-2"></i> Accept
+    </button>
+    <button onclick="respondToFriendRequest('{{ profile_user.id }}', 'reject')" 
+            class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+        <i class="fas fa-times mr-2"></i> Reject
+    </button>
+</div>
+                            {% else %}
+                            <button onclick="sendFriendRequest()" 
+                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-user-plus mr-2"></i> Add Friend
+                            </button>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Content -->
+        <div class="grid md:grid-cols-3 gap-6">
+            <!-- About Section -->
+            <div class="md:col-span-2">
+                <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">About</h2>
+                    {% if profile_user.bio %}
+                    <p class="text-gray-700">{{ profile_user.bio }}</p>
+                    {% else %}
+                    <p class="text-gray-500 italic">No bio available.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center text-gray-600">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                            <span>Joined ChatMoji on {{ profile_user.date_joined|date:"F d, Y" }}</span>
+                        </div>
+                        {% if not is_own_profile and are_friends %}
+                        <div class="flex items-center text-gray-600">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            <span>Friends since recently</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Contact Info -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Contact Info</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-envelope w-5 mr-3"></i>
+                            <span class="break-all">{{ profile_user.email }}</span>
+                        </div>
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-calendar w-5 mr-3"></i>
+                            <span>Joined {{ profile_user.date_joined|date:"F Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                {% if not is_own_profile %}
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        {% if are_friends %}
+                        <a href="{% url 'chat:start_conversation' profile_user.id %}" 
+                           class="w-full bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition block">
+                            <i class="fas fa-comments mr-2"></i> Start Chat
+                        </a>
+                        {% endif %}
+                        <button class="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition">
+                            <i class="fas fa-flag mr-2"></i> Report User
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Mutual Friends (if applicable) -->
+                {% if not is_own_profile and are_friends %}
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Mutual Friends</h3>
+                    <p class="text-gray-500 text-sm">Feature coming soon...</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function sendFriendRequest() {
+        fetch('/accounts/api/send-friend-request/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'user_id': '{{ profile_user.id }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Friend request sent! 📤', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showNotification('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        });
+    }
+
+    function respondToFriendRequest(profileUserId, action) {
+        // First, get the friend request ID from the backend
+        fetch(`/accounts/api/friend-status/${profileUserId}/`)
+        .then(response => response.json())
+        .then(statusData => {
+            if (statusData.friend_request_received) {
+                // Find the actual request ID
+                return fetch('/accounts/friend-requests/')
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the HTML to find the request ID
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const buttons = doc.querySelectorAll('button[onclick*="respondToRequest"]');
+                    let requestId = null;
+                    
+                    buttons.forEach(button => {
+                        const onclick = button.getAttribute('onclick');
+                        if (onclick && onclick.includes('respondToRequest')) {
+                            const match = onclick.match(/respondToRequest\('([^']+)'/);
+                            if (match) {
+                                requestId = match[1];
+                            }
+                        }
+                    });
+                    
+                    if (requestId) {
+                        return respondToRequestWithId(requestId, action);
+                    } else {
+                        throw new Error('Could not find request ID');
+                    }
+                });
+            } else {
+                throw new Error('No pending friend request found');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error processing request. Please try from friend requests page.', 'error');
+        });
+    }
+
+    function respondToRequestWithId(requestId, action) {
+        fetch('/accounts/api/respond-friend-request/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'request_id': requestId,
+                'action': action
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (action === 'accept') {
+                    showNotification('Friend request accepted! 🎉', 'success');
+                } else {
+                    showNotification('Friend request rejected.', 'info');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showNotification('Error: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('An error occurred. Please try again.', 'error');
+        });
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            type === 'info' ? 'bg-blue-500 text-white' :
+            'bg-gray-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+</script>
+
+{% endblock %}
