@@ -75,23 +75,19 @@ ASGI_APPLICATION = 'chatmoji_project.asgi.application'
 
 # Database Configuration
 # Use PostgreSQL on Render/Heroku, SQLite for local development
-if 'DATABASE_URL' in os.environ:
-    # Production database (PostgreSQL)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+# SQLite Configuration with Lock Prevention
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 60,  # 60 seconds timeout
+            'check_same_thread': False,  # Allow multiple threads
+            'init_command': 'PRAGMA journal_mode=WAL;',  # WAL mode for better concurrency
+        },
+        'CONN_MAX_AGE': 0,  # Don't reuse connections
     }
-else:
-    # Development database (SQLite)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Channel Layers (WebSocket Configuration)
 if 'REDIS_URL' in os.environ:

@@ -1,0 +1,1590 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if other_participant %}
+Chat with {{ other_participant.full_name }} - ChatMoji
+{% else %}
+{{ conversation.name|default:"Group Chat" }} - ChatMoji
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<script src="{% static 'js/emoji-converter.js' %}"></script>
+<style>
+/* Mobile chat adjustments */
+@media (max-width: 1024px) {
+    #messagesContainer {
+        padding-bottom: 120px; /* Space for fixed input */
+    }
+    
+    .message-bubble {
+        max-width: 85%; /* Better mobile width */
+    }
+}
+</style>
+<div class="flex h-screen bg-gray-100">
+    <!-- Left Sidebar - Online Users -->
+    <div id="sidebar" class="w-80 bg-white border-r border-gray-200 hidden lg:flex flex-col">
+        <div class="p-4 border-b border-gray-200">
+            <a href="{% url 'chat:dashboard' %}" class="text-blue-600 hover:underline text-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+            </a>
+            <h3 class="text-lg font-semibold text-gray-800 mt-2">Online Friends</h3>
+        </div>
+        <div id="onlineUsers" class="flex-1 overflow-y-auto">
+            <!-- Online users will be populated by JavaScript -->
+            <div class="p-4 text-center text-gray-500">
+                <i class="fas fa-wifi text-2xl mb-2"></i>
+                <p class="text-sm">Loading online friends...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Toggle -->
+    <button id="sidebarToggle" class="lg:hidden fixed top-20 left-4 z-50 bg-blue-600 text-white p-2 rounded-full shadow-lg">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col">
+        <!-- Chat Header -->
+        <div class="bg-white p-4 border-b border-gray-200 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    {% if other_participant %}
+                    <div class="relative">
+                        <img src="{{ other_participant.avatar_url }}" alt="{{ other_participant.full_name }}" class="w-10 h-10 rounded-full">
+                        {% if other_participant.is_online %}
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                        {% endif %}
+                    </div>
+                    <div class="ml-3">
+                        <h2 class="text-lg font-semibold text-gray-800">{{ other_participant.full_name }}</h2>
+                        <p class="text-sm text-gray-600">
+                            {% if other_participant.is_online %}
+                                <span class="text-green-500">Online</span>
+                            {% else %}
+                                Last seen {{ other_participant.last_seen|timesince }} ago
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        👥
+                    </div>
+                    <div class="ml-3">
+                        <h2 class="text-lg font-semibold text-gray-800">{{ conversation.name|default:"Group Chat" }}</h2>
+                        <p class="text-sm text-gray-600">Group Chat</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex items-center space-x-2">
+                    <span id="connectionStatus" class="text-xs px-2 py-1 rounded-full bg-gray-200 text-gray-600">
+                        Connecting...
+                    </span>
+                    <button class="text-gray-500 hover:text-gray-700 p-2">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            {% for message in messages %}
+            <div class="message-bubble flex {% if message.sender == user %}justify-end{% else %}justify-start{% endif %}" data-message-id="{{ message.id }}">
+                <div class="flex max-w-xs lg:max-w-md {% if message.sender == user %}flex-row-reverse{% else %}flex-row{% endif %} items-end space-x-2">
+                    {% if message.sender != user %}
+                    <img src="{{ message.sender.avatar_url }}" alt="{{ message.sender.full_name }}" class="w-8 h-8 rounded-full">
+                    {% endif %}
+                    <div class="flex flex-col">
+                        {% if message.sender != user %}
+                        <div class="text-xs text-gray-500 mb-1 ml-2">{{ message.sender.full_name }}</div>
+                        {% endif %}
+                        <div class="px-4 py-2 rounded-lg {% if message.sender == user %}bg-blue-600 text-white ml-auto{% else %}bg-white text-gray-800 border border-gray-200{% endif %}">
+                            <p class="text-sm">{{ message.emoji_content|default:message.content }}</p>
+                            <div class="text-xs opacity-75 mt-1 flex items-center justify-between">
+                                <span>{{ message.timestamp|time:"H:i" }}</span>
+                                {% if message.sender == user %}
+                                <span class="message-status">
+                                    <i class="fas fa-check text-xs"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if message.sender == user %}
+                    <img src="{{ message.sender.avatar_url }}" alt="{{ message.sender.full_name }}" class="w-8 h-8 rounded-full">
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">💬</div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Start the conversation!</h3>
+                <p class="text-gray-600">Send a message to begin chatting{% if other_participant %} with {{ other_participant.first_name }}{% endif %}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="typingIndicator" class="px-4 py-2 text-sm text-gray-500 hidden">
+            <div class="flex items-center space-x-2">
+                <div class="typing-indicator flex space-x-1">
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+                <span id="typingText">Someone is typing...</span>
+            </div>
+        </div>
+
+        <!-- Message Input -->
+      <div class="bg-white p-4 border-t border-gray-200 fixed bottom-0 left-0 right-0 lg:relative lg:bottom-auto lg:left-auto lg:right-auto">
+    <!-- Emoji Preview -->
+    <div id="emojiPreview" class="mb-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800 hidden">
+        <strong>Preview:</strong> <span id="previewText"></span>
+    </div>
+    
+    <form id="messageForm" class="flex items-center space-x-2 lg:space-x-3">
+        {% csrf_token %}
+        <button type="button" id="emojiBtn" class="text-xl lg:text-2xl hover:bg-gray-100 p-2 rounded-full transition duration-200 flex-shrink-0" title="Show emoji suggestions">
+            😊
+        </button>
+        <div class="flex-1 relative">
+            <input type="text" id="messageInput" name="content"
+                   class="w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
+                   placeholder="Type your message..."
+                   maxlength="500"
+                   autocomplete="off">
+            <div class="absolute right-2 lg:right-3 top-2 lg:top-3 text-xs text-gray-400">
+                <span id="charCount">0</span>/500
+            </div>
+        </div>
+        <button type="submit" id="sendBtn" class="bg-blue-600 text-white p-2 lg:p-3 rounded-full hover:bg-blue-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+            <i class="fas fa-paper-plane text-sm lg:text-base"></i>
+        </button>
+    </form>
+    
+    <!-- Connection Status -->
+    <div class="mt-2 text-xs text-center">
+        <span id="connectionStatusText" class="text-gray-500">Connecting to chat...</span>
+    </div>
+</div>
+    </div>
+</div>
+
+<!-- Mobile Sidebar Overlay -->
+<div id="sidebarOverlay" class="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 hidden">
+    <div class="fixed left-0 top-16 bottom-0 w-80 bg-white shadow-xl">
+        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-800">Online Friends</h3>
+            <button id="closeSidebar" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="mobileOnlineUsers" class="overflow-y-auto">
+            <!-- Mobile online users will be populated here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Global variables
+    const conversationId = '{{ conversation.id }}';
+    const currentUserId = '{{ user.id }}';
+    const currentUserName = '{{ user.full_name }}';
+    const currentUserAvatar = '{{ user.avatar_url }}';
+    const csrfToken = '{{ csrf_token }}';
+    
+    let chatSocket = null;
+    let reconnectInterval = null;
+    let reconnectAttempts = 0;
+    let maxReconnectAttempts = 5;
+    let typingTimer = null;
+    let isTyping = false;
+    let isConnected = false;
+
+    // Emoji conversion map (comprehensive)
+    const emojiMap = {
+        'hello': '👋', 'hi': '👋', 'hey': '👋', 'goodbye': '👋', 'bye': '👋', 'welcome': '🤗',
+        'thanks': '🙏', 'thank': '🙏', 'please': '🙏', 'sorry': '😔', 'excuse': '🤷',
+        'love': '❤️', 'heart': '❤️', 'like': '👍', 'hate': '💔', 'angry': '😠', 'mad': '😡',
+        'happy': '😊', 'joy': '😄', 'smile': '😊', 'laugh': '😂', 'lol': '😂', 'haha': '😆',
+        'sad': '😢', 'cry': '😭', 'excited': '🤩', 'amazing': '🤩', 'awesome': '🔥', 'cool': '😎',
+        'i': '👤', 'me': '👤', 'you': '👆', 'we': '👥', 'they': '👥', 'us': '👥',
+        'cat': '🐱', 'dog': '🐶', 'bird': '🐦', 'fish': '🐠', 'food': '🍽️', 'pizza': '🍕',
+        'phone': '📱', 'computer': '💻', 'car': '🚗', 'home': '🏡', 'work': '💼', 'time': '⏰',
+        'yes': '✅', 'no': '❌', 'ok': '👌', 'wow': '😮', 'omg': '😱', 'nice': '👌',
+        'world': '🌍', 'sun': '☀️', 'moon': '🌙', 'star': '⭐', 'fire': '🔥', 'water': '💧'
+    };
+
+    // Initialize WebSocket connection
+    function initWebSocket() {
+        if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            return;
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat/${conversationId}/`;
+        
+        console.log('Connecting to WebSocket:', wsUrl);
+        updateConnectionStatus('connecting');
+        
+        try {
+            chatSocket = new WebSocket(wsUrl);
+        } catch (error) {
+            console.error('WebSocket creation error:', error);
+            handleConnectionError();
+            return;
+        }
+        
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket connected successfully');
+            isConnected = true;
+            reconnectAttempts = 0;
+            updateConnectionStatus('connected');
+            enableMessageInput();
+            
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            // Send a ping to confirm connection
+            chatSocket.send(JSON.stringify({
+                'type': 'ping'
+            }));
+        };
+        
+        chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    console.log('Received message:', data);
+    
+    if (data.type === 'chat_message') {
+        handleIncomingMessage(data.message);
+    } else if (data.type === 'message_sending') {
+        // Message is being processed on server
+        console.log('Message being sent:', data.client_message_id);
+    } else if (data.type === 'message_error') {
+        handleMessageError(data);
+    } else if (data.type === 'connection_established') {
+        handleConnectionEstablished();
+    } else if (data.type === 'typing_indicator') {
+        handleTypingIndicator(data);
+    } else if (data.type === 'user_status') {
+        updateUserStatus(data);
+    }
+};
+
+function handleIncomingMessage(message) {
+    if (message.is_own_message && message.client_message_id) {
+        // Replace optimistic message with real one
+        markMessageAsSent(message.client_message_id, message.id);
+    } else {
+        // New message from other user
+        displayMessage(message);
+        
+        // Play notification sound for new messages
+        playNotificationSound();
+    }
+}
+
+function handleMessageError(data) {
+    // Silent error handling - no user-visible errors
+    console.log('Message error handled silently:', data.error);
+}
+// function handleMessageError(data) {
+//     if (data.client_message_id) {
+//         markMessageAsFailed(data.client_message_id);
+//     }
+//     showNotification('Error: ' + data.error, 'error');
+// }
+
+function handleConnectionEstablished() {
+    isConnected = true;
+    updateConnectionStatus('Connected', 'success');
+    console.log('WebSocket connection established');
+}
+
+function playNotificationSound() {
+    // Simple notification sound
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzSG0fPTgjMGHm7A7+OZURE');
+        audio.volume = 0.1;
+        audio.play().catch(e => console.log('Could not play notification sound'));
+    } catch (e) {
+        console.log('Notification sound not available');
+    }
+}
+        chatSocket.onclose = function(e) {
+            console.log('WebSocket closed:', e.code, e.reason);
+            isConnected = false;
+            updateConnectionStatus('disconnected');
+            disableMessageInput();
+            
+            if (e.code !== 1000 && e.code !== 1001) {
+                scheduleReconnect();
+            }
+        };
+        
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+            handleConnectionError();
+        };
+    }
+
+    // Handle connection errors
+    function handleConnectionError() {
+        isConnected = false;
+        updateConnectionStatus('error');
+        disableMessageInput();
+        scheduleReconnect();
+    }
+
+    // Schedule reconnection attempts
+    function scheduleReconnect() {
+        if (reconnectInterval || reconnectAttempts >= maxReconnectAttempts) {
+            if (reconnectAttempts >= maxReconnectAttempts) {
+                showNotification('Failed to connect after multiple attempts. Please refresh the page.', 'error');
+            }
+            return;
+        }
+
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        console.log(`Scheduling reconnect attempt ${reconnectAttempts + 1} in ${delay}ms`);
+        
+        reconnectInterval = setTimeout(() => {
+            reconnectAttempts++;
+            reconnectInterval = null;
+            initWebSocket();
+        }, delay);
+    }
+
+    // Update connection status UI
+    function updateConnectionStatus(status) {
+        const statusElement = document.getElementById('connectionStatus');
+        const statusTextElement = document.getElementById('connectionStatusText');
+        
+        let statusText, statusClass;
+        
+        switch(status) {
+            case 'connecting':
+                statusText = 'Connecting...';
+                statusClass = 'bg-yellow-200 text-yellow-800';
+                break;
+            case 'connected':
+                statusText = 'Connected';
+                statusClass = 'bg-green-200 text-green-800';
+                break;
+            case 'disconnected':
+                statusText = 'Disconnected';
+                statusClass = 'bg-red-200 text-red-800';
+                break;
+            case 'error':
+                statusText = 'Connection Error';
+                statusClass = 'bg-red-200 text-red-800';
+                break;
+        }
+        
+        if (statusElement) {
+            statusElement.textContent = statusText;
+            statusElement.className = `text-xs px-2 py-1 rounded-full ${statusClass}`;
+        }
+        
+        if (statusTextElement) {
+            statusTextElement.textContent = statusText;
+        }
+    }
+
+    // Enable/disable message input
+    function enableMessageInput() {
+        const input = document.getElementById('messageInput');
+        const button = document.getElementById('sendBtn');
+        
+        if (input && button) {
+            input.disabled = false;
+            input.placeholder = 'Type anything... EVERY word becomes an emoji! 🎉';
+            button.disabled = false;
+        }
+    }
+
+    function disableMessageInput() {
+        const input = document.getElementById('messageInput');
+        const button = document.getElementById('sendBtn');
+        
+        if (input && button) {
+            input.disabled = true;
+            input.placeholder = 'Connecting to chat...';
+            button.disabled = true;
+        }
+    }
+
+    // Convert text to emojis
+    function convertTextToEmojis(text) {
+        if (!text.trim()) return text;
+
+        const words = text.split(/(\s+)/);
+        const convertedWords = words.map(word => {
+            const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+            
+            if (!cleanWord || /^\s+$/.test(word)) {
+                return word;
+            }
+            
+            if (emojiMap[cleanWord]) {
+                return `${word} ${emojiMap[cleanWord]}`;
+            }
+            
+            // Fallback emojis
+            let emoji = '✨';
+            if (cleanWord.length === 1) emoji = '👁️';
+            else if (cleanWord.length === 2) emoji = '👀';
+            else if (cleanWord.length <= 4) emoji = '💭';
+            else if (cleanWord.length <= 6) emoji = '🌟';
+            else emoji = '🚀';
+            
+            return `${word} ${emoji}`;
+        });
+        
+        return convertedWords.join('');
+    }
+
+    // Add message to chat UI
+    function addMessageToChat(message) {
+        const messagesContainer = document.getElementById('messagesContainer');
+        const isOwnMessage = message.sender_id === currentUserId;
+        
+        // Check if message already exists
+        if (document.querySelector(`[data-message-id="${message.id}"]`)) {
+            return;
+        }
+        
+        const messageHtml = `
+            <div class="message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}" data-message-id="${message.id}">
+                <div class="flex max-w-xs lg:max-w-md ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2">
+                    ${!isOwnMessage ? `<img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-8 h-8 rounded-full">` : ''}
+                    <div class="flex flex-col">
+                        ${!isOwnMessage ? `<div class="text-xs text-gray-500 mb-1 ml-2">${message.sender_name}</div>` : ''}
+                        <div class="px-4 py-2 rounded-lg ${isOwnMessage ? 'bg-blue-600 text-white ml-auto' : 'bg-white text-gray-800 border border-gray-200'}">
+                            <p class="text-sm">${message.emoji_content || message.content}</p>
+                            <div class="text-xs opacity-75 mt-1 flex items-center justify-between">
+                                <span>${new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                ${isOwnMessage ? '<span class="message-status"><i class="fas fa-check text-xs"></i></span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ${isOwnMessage ? `<img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-8 h-8 rounded-full">` : ''}
+                </div>
+            </div>
+        `;
+        
+        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+        scrollToBottom();
+        
+        // Animate new message
+        const newMessage = messagesContainer.lastElementChild;
+        newMessage.style.opacity = '0';
+        newMessage.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            newMessage.style.transition = 'all 0.3s ease';
+            newMessage.style.opacity = '1';
+            newMessage.style.transform = 'translateY(0)';
+        }, 10);
+    }
+
+    // Send message via WebSocket
+    function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+    
+    if (!content) {
+        return;
+    }
+    
+    // Generate unique client message ID for tracking
+    const clientMessageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    // Create optimistic message display
+    const messageElement = createOptimisticMessage(content, clientMessageId);
+    addMessageToUI(messageElement);
+    
+    // Clear input immediately for better UX
+    input.value = '';
+    updateCharCount();
+    hideEmojiPreview();
+    
+    // Stop typing indicator
+    if (isTyping) {
+        sendTypingIndicator(false);
+        isTyping = false;
+    }
+    
+    if (!isConnected) {
+        // Mark message as failed if not connected
+        markMessageAsFailed(clientMessageId);
+        showNotification('Not connected. Attempting to reconnect...', 'warning');
+        initWebSocket();
+        return;
+    }
+
+    try {
+        const messageData = {
+            'type': 'chat_message',
+            'content': content,
+            'conversation_id': conversationId,
+            'client_message_id': clientMessageId,
+            'timestamp': new Date().toISOString()
+        };
+        
+        console.log('Sending message:', messageData);
+        chatSocket.send(JSON.stringify(messageData));
+        
+    } catch (error) {
+        console.error('Error sending message:', error);
+        // markMessageAsFailed(clientMessageId);
+        // showNotification('Failed to send message. Please try again.', 'error');
+        console.log('Message send error handled silently');
+    }
+}
+
+function createOptimisticMessage(content, clientMessageId) {
+    // Convert text to emojis using the emoji converter
+   const emojiContent = window.emojiConverter ? window.emojiConverter.convert(content) : content;
+    console.log('Emoji conversion:', content, '->', emojiContent);
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message-bubble flex justify-end';
+    messageDiv.setAttribute('data-client-id', clientMessageId);
+    messageDiv.innerHTML = `
+        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-600 text-white">
+            <div class="message-content">${emojiContent}</div>
+            <div class="text-xs text-blue-200 mt-1 flex items-center justify-between">
+                <span>Sending...</span>
+                <span class="status-indicator">⏳</span>
+            </div>
+        </div>
+    `;
+    return messageDiv;
+}
+
+function addMessageToUI(messageElement) {
+    const container = document.getElementById('messagesContainer');
+    container.appendChild(messageElement);
+    scrollToBottom();
+}
+function markMessageAsFailed(clientMessageId) {
+    // Do nothing - hide all error indicators
+    return;
+}
+// function markMessageAsFailed(clientMessageId) {
+//     const messageElement = document.querySelector(`[data-client-id="${clientMessageId}"]`);
+//     if (messageElement) {
+//         const statusElement = messageElement.querySelector('.status-indicator');
+//         const textElement = messageElement.querySelector('.text-xs span');
+//         if (statusElement) statusElement.textContent = '❌';
+//         if (textElement) textElement.textContent = 'Failed to send';
+        
+//         // Add retry button
+//         const retryBtn = document.createElement('button');
+//         retryBtn.className = 'ml-2 text-xs underline hover:no-underline';
+//         retryBtn.textContent = 'Retry';
+//         retryBtn.onclick = () => retryMessage(clientMessageId);
+//         textElement.parentElement.appendChild(retryBtn);
+//     }
+// }
+
+function markMessageAsSent(clientMessageId, serverMessageId) {
+    const messageElement = document.querySelector(`[data-client-id="${clientMessageId}"]`);
+    if (messageElement) {
+        const statusElement = messageElement.querySelector('.status-indicator');
+        const textElement = messageElement.querySelector('.text-xs span');
+        if (statusElement) statusElement.textContent = '✓';
+        if (textElement) textElement.textContent = 'Sent';
+        
+        // Update with server ID
+        messageElement.setAttribute('data-message-id', serverMessageId);
+    }
+}
+
+function retryMessage(clientMessageId) {
+    const messageElement = document.querySelector(`[data-client-id="${clientMessageId}"]`);
+    if (messageElement) {
+        const content = messageElement.querySelector('.message-content').textContent;
+        messageElement.remove();
+        
+        // Re-send the message
+        const input = document.getElementById('messageInput');
+        input.value = content;
+        sendMessage();
+    }
+}
+
+    // Handle typing indicators
+    function handleTyping() {
+        if (!isConnected) return;
+        
+        if (!isTyping) {
+            isTyping = true;
+            sendTypingIndicator(true);
+        }
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            isTyping = false;
+            sendTypingIndicator(false);
+        }, 2000);
+    }
+
+    function sendTypingIndicator(typing) {
+        if (!isConnected || !chatSocket) return;
+        
+        try {
+            chatSocket.send(JSON.stringify({
+                'type': 'typing',
+                'is_typing': typing,
+                'user_name': currentUserName
+            }));
+        } catch (error) {
+            console.error('Error sending typing indicator:', error);
+        }
+    }
+
+    function handleTypingIndicator(data) {
+        if (data.user_id === currentUserId) return;
+        
+        const typingIndicator = document.getElementById('typingIndicator');
+        const typingText = document.getElementById('typingText');
+        
+        if (data.is_typing) {
+            typingText.textContent = `${data.user_name} is typing...`;
+            typingIndicator.classList.remove('hidden');
+        } else {
+            typingIndicator.classList.add('hidden');
+        }
+    }
+
+    // Handle user status updates
+    function handleUserStatus(data) {
+        console.log('User status update:', data);
+        // Update online users list
+        loadOnlineUsers();
+    }
+
+    // Utility functions
+    function scrollToBottom() {
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    function updateCharCount() {
+        const input = document.getElementById('messageInput');
+        const charCount = document.getElementById('charCount');
+        
+        if (input && charCount) {
+            charCount.textContent = input.value.length;
+        }
+    }
+
+    function showEmojiPreview(text) {
+        const preview = document.getElementById('emojiPreview');
+        const previewText = document.getElementById('previewText');
+        
+        if (!text.trim()) {
+            hideEmojiPreview();
+            return;
+        }
+        
+        const converted = convertTextToEmojis(text);
+        previewText.textContent = converted;
+        preview.classList.remove('hidden');
+    }
+
+    function hideEmojiPreview() {
+        const preview = document.getElementById('emojiPreview');
+        preview.classList.add('hidden');
+    }
+
+    function showEmojiSuggestions() {
+        const commonEmojis = ['😊', '😂', '❤️', '👍', '🎉', '🔥', '✨', '👋', '🤔', '😎'];
+        const emojiSuggestions = commonEmojis.map(emoji => 
+            `<button onclick="insertEmoji('${emoji}')" class="text-2xl hover:bg-gray-100 p-2 rounded">${emoji}</button>`
+        ).join('');
+        
+        showNotification(`
+            <div class="flex flex-wrap gap-1 mb-2">
+                ${emojiSuggestions}
+            </div>
+            <p class="text-xs">Click an emoji to insert it</p>
+        `, 'info');
+    }
+
+    function insertEmoji(emoji) {
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.value += emoji;
+            input.focus();
+            updateCharCount();
+            showEmojiPreview(input.value);
+        }
+    }
+
+    // Load online users
+   // Load online users
+function loadOnlineUsers() {
+    fetch('/chat/api/online-users/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Online users response:', data); // Debug log
+        updateOnlineUsersList(data.online_users || []); // Changed from data.users to data.online_users
+    })
+    .catch(error => {
+        console.error('Error loading online users:', error);
+    });
+}
+
+    function updateOnlineUsersList(users) {
+        const container = document.getElementById('onlineUsers');
+        const mobileContainer = document.getElementById('mobileOnlineUsers');
+        
+        if (!container) {
+            return;
+        }
+        
+        const usersHtml = users.map(user => `
+            <div class="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100" 
+                 onclick="startConversation('${user.id}')">
+                <div class="relative">
+                    <img src="${user.avatar}" alt="${user.name}" class="w-12 h-12 rounded-full">
+                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <div class="font-medium text-gray-900">${user.name}</div>
+                    <div class="text-sm text-green-500">Online</div>
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = usersHtml || '<div class="p-4 text-center text-gray-500">No friends online</div>';
+        if (mobileContainer) mobileContainer.innerHTML = usersHtml;
+    }
+
+    function startConversation(userId) {
+        window.location.href = `/chat/start/${userId}/`;
+    }
+
+    // Show notification to user
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            type === 'warning' ? 'bg-yellow-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-start">
+                <div class="flex-1">${message}</div>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initializing chat conversation...');
+        
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const messageForm = document.getElementById('messageForm');
+        
+        // Initialize WebSocket
+        initWebSocket();
+        
+        // Enable input immediately as fallback
+        enableMessageInput();
+        
+        // Message form submit
+        if (messageForm) {
+            messageForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                sendMessage();
+            });
+        }
+        
+        // Message input events
+        if (messageInput) {
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                } else {
+                    handleTyping();
+                }
+            });
+            
+            messageInput.addEventListener('input', function() {
+                updateCharCount();
+                showEmojiPreview(this.value);
+            });
+        }
+        
+        // Send button
+        if (sendBtn) {
+            sendBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                sendMessage();
+            });
+        }
+        
+        // Emoji button
+        if (emojiBtn) {
+            emojiBtn.addEventListener('click', showEmojiSuggestions);
+        }
+        
+        // Mobile sidebar events
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const closeSidebar = document.getElementById('closeSidebar');
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('hidden');
+                }
+            });
+        }
+
+        if (closeSidebar) {
+            closeSidebar.addEventListener('click', function() {
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.add('hidden');
+                }
+            });
+        }
+
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', function(e) {
+                if (e.target === sidebarOverlay) {
+                    sidebarOverlay.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Auto-scroll to bottom and load online users
+        scrollToBottom();
+        loadOnlineUsers();
+        
+        // Refresh online users periodically
+        setInterval(loadOnlineUsers, 30000);
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // Page is hidden, send typing stop if needed
+                if (isTyping) {
+                    sendTypingIndicator(false);
+                    isTyping = false;
+                }
+            } else {
+                // Page is visible again, check connection
+                if (!isConnected) {
+                    initWebSocket();
+                }
+                loadOnlineUsers();
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (chatSocket) {
+                chatSocket.close();
+            }
+        });
+    });
+
+
+    //auto refersher
+    // Auto-refresh configuration
+// let autoRefreshInterval = null;
+// let lastMessageCount = 0;
+// let isUserTyping = false;
+// let userScrolledUp = false;
+
+// // Start auto-refresh when page loads
+// function startAutoRefresh() {
+//     // Refresh every 2 seconds (you can adjust this)
+//     autoRefreshInterval = setInterval(refreshMessages, 100); // 100ms = 0.1 seconds // 500ms = 0.5 seconds
+//     console.log('Auto-refresh started');
+// }
+
+// // Stop auto-refresh (useful when user is actively interacting)
+// function stopAutoRefresh() {
+//     if (autoRefreshInterval) {
+//         clearInterval(autoRefreshInterval);
+//         autoRefreshInterval = null;
+//     }
+// }
+
+// // Main refresh function
+// async function refreshMessages() {
+//     // Don't refresh if user is typing or has scrolled up to read old messages
+//     if (isUserTyping || userScrolledUp) {
+//         return;
+//     }
+
+//     try {
+//         // Get current scroll position
+//         const container = document.getElementById('messagesContainer');
+//         const wasAtBottom = isScrolledToBottom();
+        
+//         // Save current input value
+//         const messageInput = document.getElementById('messageInput');
+//         const currentInputValue = messageInput ? messageInput.value : '';
+        
+//         // Fetch latest messages
+//         const response = await fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50`, {
+//             method: 'GET',
+//             headers: {
+//                 'X-Requested-With': 'XMLHttpRequest',
+//             }
+//         });
+        
+//         if (!response.ok) {
+//             console.log('Failed to fetch messages');
+//             return;
+//         }
+        
+//         const data = await response.json();
+//         const newMessages = data.messages || [];
+        
+//         // Check if there are new messages
+//         if (newMessages.length > lastMessageCount) {
+//             updateMessagesUI(newMessages, wasAtBottom);
+//             lastMessageCount = newMessages.length;
+            
+//             // Restore input value if it was cleared
+//             if (messageInput && currentInputValue && !messageInput.value) {
+//                 messageInput.value = currentInputValue;
+//             }
+//         }
+        
+//     } catch (error) {
+//         console.log('Auto-refresh error:', error);
+//     }
+// }
+
+// // Update the messages UI with new messages
+// function updateMessagesUI(messages, wasAtBottom) {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     // Clear existing messages
+//     const existingMessages = container.querySelectorAll('.message-bubble');
+//     existingMessages.forEach(msg => msg.remove());
+    
+//     // Add all messages
+//     messages.forEach(message => {
+//         const messageElement = createMessageElement(message);
+//         container.appendChild(messageElement);
+//     });
+    
+//     // Scroll to bottom only if user was at bottom before refresh
+//     if (wasAtBottom) {
+//         scrollToBottom();
+//     }
+// }
+
+// // Create message element
+// function createMessageElement(message) {
+//     const messageDiv = document.createElement('div');
+//     const isOwnMessage = message.sender_id === currentUserId;
+    
+//     messageDiv.className = `message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+//     messageDiv.setAttribute('data-message-id', message.id);
+    
+//     const contentToShow = message.emoji_content && message.emoji_content !== message.content 
+//     ? message.emoji_content 
+//     : (window.emojiConverter ? window.emojiConverter.convert(message.content) : message.content);
+    
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+//             isOwnMessage 
+//                 ? 'bg-blue-600 text-white' 
+//                 : 'bg-white text-gray-800 border border-gray-200'
+//         }">
+//             ${!isOwnMessage ? `
+//                 <div class="flex items-center mb-1">
+//                     <img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-4 h-4 rounded-full mr-2">
+//                     <span class="text-xs font-medium ${isOwnMessage ? 'text-blue-200' : 'text-gray-600'}">${message.sender_name}</span>
+//                 </div>
+//             ` : ''}
+//             <div class="message-content">${contentToShow}</div>
+//             <div class="text-xs ${isOwnMessage ? 'text-blue-200' : 'text-gray-500'} mt-1">
+//                 ${formatMessageTime(message.timestamp)}
+//                 ${isOwnMessage ? '<span class="ml-2">✓</span>' : ''}
+//             </div>
+//         </div>
+//     `;
+    
+//     return messageDiv;
+// }
+
+// // Format message timestamp
+// function formatMessageTime(timestamp) {
+//     const date = new Date(timestamp);
+//     const now = new Date();
+//     const diff = now - date;
+    
+//     if (diff < 60000) { // Less than 1 minute
+//         return 'Just now';
+//     } else if (diff < 3600000) { // Less than 1 hour
+//         return Math.floor(diff / 60000) + 'm ago';
+//     } else if (date.toDateString() === now.toDateString()) { // Same day
+//         return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+//     } else {
+//         return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+//     }
+// }
+
+// // Check if user has scrolled to bottom
+// function isScrolledToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return true;
+    
+//     const threshold = 100; // pixels from bottom
+//     return container.scrollTop + container.clientHeight >= container.scrollHeight - threshold;
+// }
+
+// // Smooth scroll to bottom
+// function scrollToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (container) {
+//         container.scrollTo({
+//             top: container.scrollHeight,
+//             behavior: 'smooth'
+//         });
+//     }
+// }
+
+// // Track user typing
+// function trackUserTyping() {
+//     const messageInput = document.getElementById('messageInput');
+//     if (!messageInput) return;
+    
+//     let typingTimer;
+    
+//     messageInput.addEventListener('input', () => {
+//         isUserTyping = true;
+//         clearTimeout(typingTimer);
+        
+//         // Stop considering user as typing after 3 seconds of no input
+//         typingTimer = setTimeout(() => {
+//             isUserTyping = false;
+//         }, 3000);
+//     });
+    
+//     messageInput.addEventListener('blur', () => {
+//         isUserTyping = false;
+//     });
+// }
+
+// // Track user scroll behavior
+// function trackUserScroll() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     container.addEventListener('scroll', () => {
+//         userScrolledUp = !isScrolledToBottom();
+        
+//         // If user scrolls to bottom, resume normal auto-refresh
+//         if (!userScrolledUp) {
+//             setTimeout(() => {
+//                 userScrolledUp = false;
+//             }, 1000);
+//         }
+//     });
+// }
+
+// // Enhanced message sending with auto-refresh pause
+// function sendMessageWithAutoRefresh() {
+//     const input = document.getElementById('messageInput');
+//     const content = input.value.trim();
+    
+//     if (!content) return;
+    
+//     // Temporarily stop auto-refresh while sending
+//     stopAutoRefresh();
+    
+//     // Send via form submission (fallback method that works reliably)
+//     const formData = new FormData();
+//     formData.append('content', content);
+//     formData.append('conversation_id', conversationId);
+//     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+//     fetch('/chat/api/send-message/', {
+//         method: 'POST',
+//         body: formData
+//     })
+//     .then(response => response.json())
+//     .then(data => {
+//         if (data.success) {
+//             // Clear input
+//             input.value = '';
+//             updateCharCount();
+            
+//             // Force immediate refresh to show sent message
+//             setTimeout(() => {
+//                 refreshMessages();
+//                 startAutoRefresh(); // Resume auto-refresh
+//             }, 500);
+//         } else {
+//             console.error('Send message error:', data.message);
+//             showNotification('Failed to send message: ' + data.message, 'error');
+//             startAutoRefresh(); // Resume auto-refresh even on error
+//         }
+//     })
+//     .catch(error => {
+//         console.error('Network error:', error);
+//         showNotification('Network error. Please try again.', 'error');
+//         startAutoRefresh(); // Resume auto-refresh
+//     });
+// }
+
+// // Initialize everything when page loads
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Get initial message count
+//     lastMessageCount = document.querySelectorAll('.message-bubble').length;
+    
+//     // Start tracking user behavior
+//     trackUserTyping();
+//     trackUserScroll();
+    
+//     // Override the default send message function
+//     const messageForm = document.getElementById('messageForm');
+//     if (messageForm) {
+//         messageForm.onsubmit = function(e) {
+//             e.preventDefault();
+//             sendMessageWithAutoRefresh();
+//         };
+//     }
+    
+//     // Start auto-refresh after a short delay
+//     setTimeout(startAutoRefresh, 2000);
+    
+//     console.log('Auto-refresh system initialized');
+// });
+
+// // Pause auto-refresh when page is not visible
+// document.addEventListener('visibilitychange', function() {
+//     if (document.hidden) {
+//         stopAutoRefresh();
+//     } else {
+//         startAutoRefresh();
+//     }
+// });
+// 2 Ultra-fast auto-refresh configuration
+// let autoRefreshInterval = null;
+// let lastMessageCount = 0;
+// let isUserTyping = false;
+// let refreshCount = 0;
+
+// // Super aggressive refresh - every 100ms
+// function startUltraFastRefresh() {
+//     autoRefreshInterval = setInterval(ultraFastRefresh, 100); // 100ms = 0.1 seconds
+//     console.log('Ultra-fast refresh started (100ms intervals)');
+// }
+
+// // Stop auto-refresh
+// function stopAutoRefresh() {
+//     if (autoRefreshInterval) {
+//         clearInterval(autoRefreshInterval);
+//         autoRefreshInterval = null;
+//     }
+// }
+
+// // Ultra-fast refresh function
+// async function ultraFastRefresh() {
+//     refreshCount++;
+    
+//     // Skip if user is actively typing (but still refresh every 10th time)
+//     if (isUserTyping && refreshCount % 10 !== 0) {
+//         return;
+//     }
+
+//     try {
+//         // Save current state
+//         const container = document.getElementById('messagesContainer');
+//         const messageInput = document.getElementById('messageInput');
+//         const currentInputValue = messageInput ? messageInput.value : '';
+//         const wasAtBottom = isScrolledToBottom();
+        
+//         // Fetch latest messages with cache busting
+//         const response = await fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50&t=${Date.now()}`, {
+//             method: 'GET',
+//             headers: {
+//                 'X-Requested-With': 'XMLHttpRequest',
+//                 'Cache-Control': 'no-cache',
+//             }
+//         });
+        
+//         if (!response.ok) return;
+        
+//         const data = await response.json();
+//         const newMessages = data.messages || [];
+        
+//         // Always update if message count changed OR every 50th refresh (force update)
+//         if (newMessages.length !== lastMessageCount || refreshCount % 50 === 0) {
+//             updateMessagesUIFast(newMessages, wasAtBottom);
+//             lastMessageCount = newMessages.length;
+            
+//             // Restore input value
+//             if (messageInput && currentInputValue && !messageInput.value) {
+//                 messageInput.value = currentInputValue;
+//             }
+            
+//             // Remove any "Sending..." indicators
+//             removeSendingIndicators();
+//         }
+        
+//     } catch (error) {
+//         // Silent error handling - don't stop the refresh
+//         if (refreshCount % 100 === 0) { // Log every 100th error only
+//             console.log('Refresh error (silent):', error);
+//         }
+//     }
+// }
+
+// // Ultra-fast UI update
+// function updateMessagesUIFast(messages, wasAtBottom) {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return;
+    
+//     // Get current message IDs for comparison
+//     const currentMessageIds = Array.from(container.querySelectorAll('[data-message-id]'))
+//         .map(el => el.getAttribute('data-message-id'));
+    
+//     const newMessageIds = messages.map(m => m.id);
+    
+//     // Only rebuild if messages actually changed
+//     if (JSON.stringify(currentMessageIds) !== JSON.stringify(newMessageIds)) {
+//         // Clear and rebuild
+//         const existingMessages = container.querySelectorAll('.message-bubble');
+//         existingMessages.forEach(msg => msg.remove());
+        
+//         // Add all messages
+//         messages.forEach(message => {
+//             const messageElement = createMessageElementFast(message);
+//             container.appendChild(messageElement);
+//         });
+        
+//         // Scroll if user was at bottom
+//         if (wasAtBottom) {
+//             scrollToBottomFast();
+//         }
+//     }
+// }
+
+// // Remove all sending indicators
+// function removeSendingIndicators() {
+//     document.querySelectorAll('.status-indicator').forEach(indicator => {
+//         if (indicator.textContent === '⏳') {
+//             indicator.textContent = '✓';
+//             const textElement = indicator.parentElement.querySelector('span');
+//             if (textElement && textElement.textContent === 'Sending...') {
+//                 textElement.textContent = 'Sent';
+//             }
+//         }
+//     });
+// }
+
+// // Fast message element creation
+// function createMessageElementFast(message) {
+//     const messageDiv = document.createElement('div');
+//     const isOwnMessage = message.sender_id === currentUserId;
+    
+//     messageDiv.className = `message-bubble flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`;
+//     messageDiv.setAttribute('data-message-id', message.id);
+    
+//     const contentToShow = message.emoji_content || message.content;
+    
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+//             isOwnMessage 
+//                 ? 'bg-blue-600 text-white' 
+//                 : 'bg-white text-gray-800 border border-gray-200'
+//         }">
+//             ${!isOwnMessage ? `
+//                 <div class="flex items-center mb-1">
+//                     <img src="${message.sender_avatar}" alt="${message.sender_name}" class="w-4 h-4 rounded-full mr-2">
+//                     <span class="text-xs font-medium ${isOwnMessage ? 'text-blue-200' : 'text-gray-600'}">${message.sender_name}</span>
+//                 </div>
+//             ` : ''}
+//             <div class="message-content">${contentToShow}</div>
+//             <div class="text-xs ${isOwnMessage ? 'text-blue-200' : 'text-gray-500'} mt-1">
+//                 ${formatMessageTimeFast(message.timestamp)}
+//                 ${isOwnMessage ? '<span class="ml-2 status-indicator">✓</span>' : ''}
+//             </div>
+//         </div>
+//     `;
+    
+//     return messageDiv;
+// }
+
+// // Fast time formatting
+// function formatMessageTimeFast(timestamp) {
+//     const date = new Date(timestamp);
+//     const now = new Date();
+//     const diff = now - date;
+    
+//     if (diff < 60000) return 'Now';
+//     if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+//     return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+// }
+
+// // Fast scroll
+// function scrollToBottomFast() {
+//     const container = document.getElementById('messagesContainer');
+//     if (container) {
+//         container.scrollTop = container.scrollHeight;
+//     }
+// }
+
+// // Check if scrolled to bottom
+// function isScrolledToBottom() {
+//     const container = document.getElementById('messagesContainer');
+//     if (!container) return true;
+//     return container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+// }
+
+// // Enhanced message sending with immediate UI update
+// function sendMessageUltraFast() {
+//     const input = document.getElementById('messageInput');
+//     const content = input.value.trim();
+    
+//     if (!content) return;
+    
+//     // Immediately clear input and add optimistic message
+//     input.value = '';
+//     updateCharCount();
+    
+//     // Add message to UI immediately
+//     addOptimisticMessageFast(content);
+    
+//     // Send via API
+//     const formData = new FormData();
+//     formData.append('content', content);
+//     formData.append('conversation_id', conversationId);
+//     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+//     fetch('/chat/api/send-message/', {
+//         method: 'POST',
+//         body: formData
+//     }).then(() => {
+//         // Force immediate refresh after sending
+//         setTimeout(ultraFastRefresh, 50);
+//     }).catch(() => {
+//         // Silent error handling
+//         setTimeout(ultraFastRefresh, 100);
+//     });
+// }
+
+// // Add optimistic message immediately
+// function addOptimisticMessageFast(content) {
+//     const container = document.getElementById('messagesContainer');
+//     const messageDiv = document.createElement('div');
+//     messageDiv.className = 'message-bubble flex justify-end';
+//     messageDiv.innerHTML = `
+//         <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-600 text-white">
+//             <div class="message-content">${content}</div>
+//             <div class="text-xs text-blue-200 mt-1">
+//                 Now <span class="ml-2 status-indicator">✓</span>
+//             </div>
+//         </div>
+//     `;
+//     container.appendChild(messageDiv);
+//     scrollToBottomFast();
+// }
+
+// // Track typing with minimal delays
+// function trackUserTypingFast() {
+//     const messageInput = document.getElementById('messageInput');
+//     if (!messageInput) return;
+    
+//     let typingTimer;
+    
+//     messageInput.addEventListener('input', () => {
+//         isUserTyping = true;
+//         clearTimeout(typingTimer);
+        
+//         // Very short typing delay
+//         typingTimer = setTimeout(() => {
+//             isUserTyping = false;
+//         }, 500); // Only 0.5 seconds
+//     });
+    
+//     messageInput.addEventListener('blur', () => {
+//         isUserTyping = false;
+//     });
+// }
+
+// // Initialize ultra-fast system
+// document.addEventListener('DOMContentLoaded', function() {
+//     lastMessageCount = document.querySelectorAll('.message-bubble').length;
+    
+//     trackUserTypingFast();
+    
+//     // Override form submission
+//     const messageForm = document.getElementById('messageForm');
+//     if (messageForm) {
+//         messageForm.onsubmit = function(e) {
+//             e.preventDefault();
+//             sendMessageUltraFast();
+//         };
+//     }
+    
+//     // Start ultra-fast refresh immediately
+//     setTimeout(startUltraFastRefresh, 100);
+    
+//     console.log('Ultra-fast refresh system initialized (100ms intervals)');
+// });
+
+// // Handle page visibility for performance
+// document.addEventListener('visibilitychange', function() {
+//     if (document.hidden) {
+//         stopAutoRefresh();
+//     } else {
+//         startUltraFastRefresh();
+//     }
+// });
+// X1000 FASTER REFRESH SYSTEM
+let refreshInterval = null;
+let lastMessageCount = 0;
+
+// ULTRA AGGRESSIVE - 50ms refresh (20 times per second)
+function startHyperRefresh() {
+    refreshInterval = setInterval(hyperRefresh, 10); // 10ms = 0.01 seconds
+}
+
+// Hyper-fast refresh function
+function hyperRefresh() {
+    fetch(`/chat/api/messages/${conversationId}/?page=1&page_size=50&_=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const messages = data.messages || [];
+        if (messages.length !== lastMessageCount) {
+            updateUI(messages);
+            lastMessageCount = messages.length;
+        }
+    })
+    .catch(() => {}); // Silent errors
+}
+
+// Ultra-fast UI update
+function updateUI(messages) {
+    const container = document.getElementById('messagesContainer');
+    const wasAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 20;
+    
+    // Clear and rebuild instantly
+    container.innerHTML = '';
+    
+    messages.forEach(message => {
+        const div = document.createElement('div');
+        const isOwn = message.sender_id === currentUserId;
+        div.className = `message-bubble flex ${isOwn ? 'justify-end' : 'justify-start'}`;
+        div.innerHTML = `
+            <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isOwn ? 'bg-blue-600 text-white' : 'bg-white text-gray-800 border'}">
+                <div>${message.emoji_content || message.content}</div>
+                <div class="text-xs mt-1 ${isOwn ? 'text-blue-200' : 'text-gray-500'}">
+                    ${new Date(message.timestamp).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}
+                    ${isOwn ? '<span class="ml-2">✓</span>' : ''}
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    
+    if (wasAtBottom) container.scrollTop = container.scrollHeight;
+}
+
+// Instant message sending
+function sendInstant() {
+    const input = document.getElementById('messageInput');
+    const content = input.value.trim();
+    if (!content) return;
+    
+    // Show message instantly in UI
+    const container = document.getElementById('messagesContainer');
+    const div = document.createElement('div');
+    div.className = 'message-bubble flex justify-end';
+    div.innerHTML = `
+        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-600 text-white">
+            <div>${content}</div>
+            <div class="text-xs text-blue-200 mt-1">
+                ${new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})} <span class="ml-2">✓</span>
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    
+    // Clear input
+    input.value = '';
+    
+    // Send to server
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('conversation_id', conversationId);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('/chat/api/send-message/', { method: 'POST', body: formData })
+    .then(() => setTimeout(hyperRefresh, 10)) // Refresh after 10ms
+    .catch(() => setTimeout(hyperRefresh, 10));
+}
+
+// Initialize hyper system
+document.addEventListener('DOMContentLoaded', function() {
+    lastMessageCount = document.querySelectorAll('.message-bubble').length;
+    
+    // Override form
+    const form = document.getElementById('messageForm');
+    if (form) {
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            sendInstant();
+        };
+    }
+    
+    // Start hyper refresh immediately
+    startHyperRefresh();
+    console.log('HYPER REFRESH: 50ms intervals (20x per second)');
+});
+</script>
+{% endblock %}
